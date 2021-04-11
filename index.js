@@ -1,4 +1,7 @@
 require("dotenv").config();
+var BOT_CONFIG = {
+  "servers": {}
+};
 
 // Winston Logger Declarations
 const winston = require('winston');
@@ -10,18 +13,21 @@ const logger = winston.createLogger({
   ]
 });
 
-const TOKEN = process.env.TOKEN;
-// const PREFIX = '&';
 
 // Discord.js Declarations
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS] });
 
 // Start Bot
+const TOKEN = process.env.TOKEN;
+// const PREFIX = '&';
 client.login(TOKEN);
 
 client.on('ready', () => {
   logger.info(`Logged in as ${client.user.tag}!`);
+  loadServerConfig().then(function() {
+    logger.info("Configuration Loaded.");
+  });
   logger.info("")
 });
 
@@ -36,7 +42,7 @@ client.on('guildMemberAdd', member => {
 
 
 
-function loadServerConfig(serverId) {
+async function loadServerConfig() {
   var AWS = require("aws-sdk");
   console.log("Version: " + AWS.VERSION);
 
@@ -51,16 +57,18 @@ function loadServerConfig(serverId) {
 
   const params = {
     TableName: "installations",
-    Key: {
-      "serverId": serverId
-    }
   };
 
-  docClient.get(params, function(err, data){
+  docClient.scan(params, function(err, data){
     if (err) {
       console.error("Unable to read item.  Error JSON: ", JSON.stringify(err, null, 2));
     } else { 
-      console.log("GetItem succeeded: ", JSON.stringify(data, null, 2));
+      data.Items.forEach(element => {
+        BOT_CONFIG.servers[element.serverId] = element;
+      });
+
+      console.log("GetItem succeeded.  Number of Servers: ", Object.keys(BOT_CONFIG.servers));
+      console.log(JSON.stringify(BOT_CONFIG.servers, null, 2));
       return data;
     }
   });
