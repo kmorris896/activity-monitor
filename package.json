@@ -5,7 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "aws-sdk": "^2.884.0",
-    "dotenv": "^8.2.0"
+    "discord.js": "^12.5.3",
+    "dotenv": "^8.2.0",
+    "winston": "^3.3.3"
   },
   "devDependencies": {},
   "scripts": {
