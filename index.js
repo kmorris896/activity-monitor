@@ -42,8 +42,12 @@ client.on('guildMemberAdd', member => {
     TableName: "installations",
     Key: {"serverId": member.guild.id},
     UpdateExpression: "set joinList.#memberId = :memberMap",
+    ConditionExpression: "attribute_not_exists(joinList.#memberId) OR joinList.#memberId.joinDateTime < :timeStamp", 
     ExpressionAttributeNames: { "#memberId": member.id },
-    ExpressionAttributeValues: { ":memberMap": {"joinDateTime": member.joinedTimestamp}}
+    ExpressionAttributeValues: { 
+      ":timeStamp": member.joinedTimestamp,
+      ":memberMap": {"joinDateTime": member.joinedTimestamp}
+    },
   }
   
   logger.info("Adding to DynamoDB...");
