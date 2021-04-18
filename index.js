@@ -29,30 +29,36 @@ client.on('ready', () => {
   //   logger.info("Configuration Loaded.");
   // });
   logger.info("Ready.")
-  // setTimeout(checkNewArrivals, 1000);
+  setTimeout(checkNewArrivals, 1000, "704057794571272362");
 });
 
 client.on('guildMemberAdd', member => {
   addMember(member);
 });
 
-async function checkNewArrivals() {
+async function checkNewArrivals(guildId) {
   var docClient = await createAwsDynamoDBObject();
   
-  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  const oneDayAgo = Date.now() - oneDay;
+  // const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
+  // const oneDayAgo = Date.now() - oneDay;
+  const oneDayAgo = Date.now();
   logger.info("Looking for entries less than: " + oneDayAgo);
+  logger.info("On server: " + guildId);
 
   let params = {
-    TableName: "joinTable_" + memberObject.guild.id,
-    KeyConditionExpression: "joinDateTime < :datetime",
+    TableName: "joinTable_d8c7c4d5",
+    IndexName: "joinTable_joinDateTime",
+    KeyConditionExpression: "serverId = :serverId AND joinDateTime < :datetime",
     ExpressionAttributeValues: {
+      ":serverId": guildId,
       ":datetime": oneDayAgo
     } 
   };
 
+  logger.info(JSON.stringify(params, null, 2));
+
   docClient.query(params, function(err, data) {
-    logger.info(JSON.stringify(data, null, 2));
+    logger.info("data: " + JSON.stringify(data, null, 2));
   });
 
 }
@@ -65,10 +71,11 @@ async function addMember(memberObject) {
   logger.info("Joined at: " + memberObject.joinedTimestamp);
 
   let memberItem = {
-    TableName: "joinTable_" + memberObject.guild.id,
+    TableName: "joinTable_d8c7c4d5",
     Item: {
-      "joinDateTime": memberObject.joinedTimestamp,
-      "memberId": memberObject.id
+      "serverId": memberObject.guild.id,
+      "memberId": memberObject.id,
+      "joinDateTime": memberObject.joinedTimestamp
     }
   }
   
