@@ -32,43 +32,40 @@ client.on('ready', () => {
 });
 
 client.on('guildMemberAdd', member => {
-  logger.info(JSON.stringify(member));
-  logger.info("SERVER JOIN ON " + member.guild.name + " (" + member.guild.id + ")");
-  logger.info("Member Name: " + member.displayName);
-  logger.info("Member ID: " + member.id);
-  logger.info("Joined at: " + member.joinedTimestamp);
+  addMember(member);
+});
+
+async function checkNewArrivals() {
+
+}
+
+async function addMember(memberObject) {
+  logger.info(JSON.stringify(memberObject));
+  logger.info("SERVER JOIN ON " + memberObject.guild.name + " (" + memberObject.guild.id + ")");
+  logger.info("memberObject Name: " + memberObject.displayName);
+  logger.info("memberObject ID: " + memberObject.id);
+  logger.info("Joined at: " + memberObject.joinedTimestamp);
 
   let memberItem = {
     TableName: "installations",
-    Key: {"serverId": member.guild.id},
+    Key: {"serverId": memberObject.guild.id},
     UpdateExpression: "set joinList.#memberId = :memberMap",
     ConditionExpression: "attribute_not_exists(joinList.#memberId) OR joinList.#memberId.joinDateTime < :timeStamp", 
-    ExpressionAttributeNames: { "#memberId": member.id },
+    ExpressionAttributeNames: { "#memberId": memberObject.id },
     ExpressionAttributeValues: { 
-      ":timeStamp": member.joinedTimestamp,
-      ":memberMap": {"joinDateTime": member.joinedTimestamp}
+      ":timeStamp": memberObject.joinedTimestamp,
+      ":memberMap": {"joinDateTime": memberObject.joinedTimestamp}
     },
   }
   
   logger.info("Adding to DynamoDB...");
   updateItem(memberItem);
-
-});
+}
 
 
 
 async function updateItem(params) {
-  var AWS = require("aws-sdk");
-  console.log("Version: " + AWS.VERSION);
-
-  const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
-  logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
-  // var awsConfig = new AWS.Config();
-  AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
-  AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-
-  // var dynamodb = new AWS.DynamoDB();
-  var docClient = new AWS.DynamoDB.DocumentClient();
+  var docClient = await createAwsDynamoDBObject();
   docClient.update(params, function(err, data) {
     if (err) {
       console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
@@ -80,17 +77,7 @@ async function updateItem(params) {
 
 
 async function loadServerConfig() {
-  var AWS = require("aws-sdk");
-  console.log("Version: " + AWS.VERSION);
-
-  const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
-  logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
-  // var awsConfig = new AWS.Config();
-  AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
-  AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-
-  // var dynamodb = new AWS.DynamoDB();
-  var docClient = new AWS.DynamoDB.DocumentClient();
+  var docClient = await createAwsDynamoDBObject();
 
   const params = {
     TableName: "installations",
@@ -109,4 +96,20 @@ async function loadServerConfig() {
       return data;
     }
   });
+}
+
+async function createAwsDynamoDBObject() {
+  var AWS = require("aws-sdk");
+  console.log("AWS SDK Version: " + AWS.VERSION);
+
+  const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
+  logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
+  // var awsConfig = new AWS.Config();
+  AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
+  AWS.config.apiVersions = { dynamodb: '2012-08-10' };
+
+  // var dynamodb = new AWS.DynamoDB();
+  var docClient = new AWS.DynamoDB.DocumentClient();
+
+  return docClient;
 }
