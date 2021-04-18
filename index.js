@@ -6,7 +6,7 @@ var BOT_CONFIG = {
 // Winston Logger Declarations
 const winston = require('winston');
 const logger = winston.createLogger({
-  level: 'info',
+  level: 'debug',
   transports: [
     new winston.transports.Console({format: winston.format.combine(winston.format.colorize(), winston.format.simple())}),
     new winston.transports.File({filename: 'logs/combined.log'})
@@ -25,10 +25,11 @@ client.login(TOKEN);
 
 client.on('ready', () => {
   logger.info(`Logged in as ${client.user.tag}!`);
-  loadServerConfig().then(function() {
-    logger.info("Configuration Loaded.");
-  });
-  logger.info("")
+  // loadServerConfig().then(function() {
+  //   logger.info("Configuration Loaded.");
+  // });
+  logger.info("Ready.")
+  // setTimeout(checkNewArrivals, 1000);
 });
 
 client.on('guildMemberAdd', member => {
@@ -36,41 +37,57 @@ client.on('guildMemberAdd', member => {
 });
 
 async function checkNewArrivals() {
+  var docClient = await createAwsDynamoDBObject();
+  
+  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
+  const oneDayAgo = Date.now() - oneDay;
+  logger.info("Looking for entries less than: " + oneDayAgo);
+
+  let params = {
+    TableName: "joinTable_" + memberObject.guild.id,
+    KeyConditionExpression: "joinDateTime < :datetime",
+    ExpressionAttributeValues: {
+      ":datetime": oneDayAgo
+    } 
+  };
+
+  docClient.query(params, function(err, data) {
+    logger.info(JSON.stringify(data, null, 2));
+  });
 
 }
 
 async function addMember(memberObject) {
-  logger.info(JSON.stringify(memberObject));
+  // logger.info(JSON.stringify(memberObject));
   logger.info("SERVER JOIN ON " + memberObject.guild.name + " (" + memberObject.guild.id + ")");
   logger.info("memberObject Name: " + memberObject.displayName);
   logger.info("memberObject ID: " + memberObject.id);
   logger.info("Joined at: " + memberObject.joinedTimestamp);
 
   let memberItem = {
-    TableName: "installations",
-    Key: {"serverId": memberObject.guild.id},
-    UpdateExpression: "set joinList.#memberId = :memberMap",
-    ConditionExpression: "attribute_not_exists(joinList.#memberId) OR joinList.#memberId.joinDateTime < :timeStamp", 
-    ExpressionAttributeNames: { "#memberId": memberObject.id },
-    ExpressionAttributeValues: { 
-      ":timeStamp": memberObject.joinedTimestamp,
-      ":memberMap": {"joinDateTime": memberObject.joinedTimestamp}
-    },
+    TableName: "joinTable_" + memberObject.guild.id,
+    Item: {
+      "joinDateTime": memberObject.joinedTimestamp,
+      "memberId": memberObject.id
+    }
   }
   
   logger.info("Adding to DynamoDB...");
-  updateItem(memberItem);
+  putItem(memberItem);
 }
 
 
 
-async function updateItem(params) {
+async function putItem(params) {
   var docClient = await createAwsDynamoDBObject();
-  docClient.update(params, function(err, data) {
+
+  logger.debug("Putting into table: " + params.TableName);
+  logger.debug(JSON.stringify(params, null, 2));
+  docClient.put(params, function(err, data) {
     if (err) {
-      console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
+      logger.error("Unable to PUT item. Error JSON:", JSON.stringify(err, null, 2));
     } else {
-        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+      logger.debug("putItem succeeded:", JSON.stringify(data, null, 2));
     }
   });
 } 
