@@ -29,7 +29,7 @@ client.on('ready', () => {
   //   logger.info("Configuration Loaded.");
   // });
   logger.info("Ready.")
-  setTimeout(checkNewArrivals, 1000, "704057794571272362");
+  setInterval(checkNewArrivals, 1000, "704057794571272362");
 });
 
 client.on('guildMemberAdd', member => {
@@ -39,9 +39,9 @@ client.on('guildMemberAdd', member => {
 async function checkNewArrivals(guildId) {
   var docClient = await createAwsDynamoDBObject();
   
-  // const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  // const oneDayAgo = Date.now() - oneDay;
-  const oneDayAgo = Date.now();
+  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
+  const oneDayAgo = Date.now() - oneDay;
+  
   logger.info("Looking for entries less than: " + oneDayAgo);
   logger.info("On server: " + guildId);
 
