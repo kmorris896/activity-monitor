@@ -29,7 +29,11 @@ client.on('ready', () => {
   //   logger.info("Configuration Loaded.");
   // });
   logger.info("Ready.")
-  setInterval(checkNewArrivals, 1000, "704057794571272362");
+  client.guilds.cache.forEach(function (server) {
+    logger.info('Guild ID: ' + server.id);
+    setTimeout(checkNewArrivals, 1000, server.id);
+  });
+  // setInterval(checkNewArrivals, 1000, "704057794571272362");
 });
 
 client.on('guildMemberAdd', member => {
