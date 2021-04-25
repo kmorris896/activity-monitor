@@ -33,7 +33,6 @@ client.on('ready', () => {
     logger.info('Guild ID: ' + server.id);
     setTimeout(checkNewArrivals, 1000, server.id);
   });
-  // setInterval(checkNewArrivals, 1000, "704057794571272362");
 });
 
 client.on('guildMemberAdd', member => {
@@ -59,8 +58,6 @@ async function checkNewArrivals(guildId) {
     } 
   };
 
-  // logger.debug(JSON.stringify(params, null, 2));
-
   docClient.query(params, async function(err, data) {
     data.Items.forEach(async function (member) {
       const dateObject = new Date(member.joinDateTime);
@@ -74,12 +71,19 @@ async function checkNewArrivals(guildId) {
 
         await sendDM(member.memberId, kickMessage); 
         await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
-
       } else {
         logger.debug("user is no longer on the server");
       }   
       
-      // TODO: Delete user object from database
+      const params = {
+        TableName: "joinTable_d8c7c4d5",
+        Key: {
+          "serverId": member.serverId,
+          "memberId": member.memberId
+        }
+      }
+
+      deleteItem(params);
     });
   });
 }
@@ -125,28 +129,20 @@ async function putItem(params) {
   });
 } 
 
-
-async function loadServerConfig() {
+async function deleteItem(params) {
   var docClient = await createAwsDynamoDBObject();
 
-  const params = {
-    TableName: "installations",
-  };
-
-  docClient.scan(params, function(err, data){
+  logger.debug("Putting into table: " + params.TableName);
+  logger.debug(JSON.stringify(params, null, 2));
+  docClient.delete(params, function(err, data) {
     if (err) {
-      console.error("Unable to read item.  Error JSON: ", JSON.stringify(err, null, 2));
-    } else { 
-      data.Items.forEach(element => {
-        BOT_CONFIG.servers[element.serverId] = element;
-      });
-
-      console.log("GetItem succeeded.  Number of Servers: ", Object.keys(BOT_CONFIG.servers));
-      console.log(JSON.stringify(BOT_CONFIG.servers, null, 2));
-      return data;
+      logger.error("Unable to DELETE item. Error JSON:", JSON.stringify(err, null, 2));
+    } else {
+      logger.debug("deleteItem succeeded:", JSON.stringify(data, null, 2));
     }
   });
 }
+
 
 async function createAwsDynamoDBObject() {
   var AWS = require("aws-sdk");
