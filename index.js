@@ -15,7 +15,7 @@ const logger = winston.createLogger({
 
 
 // Discord.js Declarations
-const { Client, Intents } = require("discord.js");
+const { Client, Intents, Discord } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS] });
 
 // Start Bot
@@ -59,13 +59,34 @@ async function checkNewArrivals(guildId) {
     } 
   };
 
-  logger.info(JSON.stringify(params, null, 2));
+  // logger.debug(JSON.stringify(params, null, 2));
 
-  docClient.query(params, function(err, data) {
-    logger.info("data: " + JSON.stringify(data, null, 2));
+  docClient.query(params, async function(err, data) {
+    data.Items.forEach(async function (member) {
+      const dateObject = new Date(member.joinDateTime);
+      logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
+
+      const guildObject = client.guilds.cache.get(member.serverId);
+      if (guildObject.member(member.memberId)) { 
+        logger.info("User still exists on server");
+        logger.debug("Full member list: " + JSON.stringify(guildObject.members, null, 2));
+        
+        const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
+
+        await sendDM(member.memberId, kickMessage); 
+        await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+
+      } else {
+        logger.info("user is no longer on the server");
+      }      
+    });
   });
-
 }
+
+async function sendDM(memberId, message) {
+  await client.users.cache.get(memberId).send(message);
+}
+
 
 async function addMember(memberObject) {
   // logger.info(JSON.stringify(memberObject));
