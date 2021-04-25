@@ -68,8 +68,7 @@ async function checkNewArrivals(guildId) {
 
       const guildObject = client.guilds.cache.get(member.serverId);
       if (guildObject.member(member.memberId)) { 
-        logger.info("User still exists on server");
-        logger.debug("Full member list: " + JSON.stringify(guildObject.members, null, 2));
+        logger.debug("User still exists on server");
         
         const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
 
@@ -77,8 +76,10 @@ async function checkNewArrivals(guildId) {
         await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
 
       } else {
-        logger.info("user is no longer on the server");
-      }      
+        logger.debug("user is no longer on the server");
+      }   
+      
+      // TODO: Delete user object from database
     });
   });
 }
