@@ -42,10 +42,12 @@ client.on('guildMemberAdd', member => {
 async function checkNewArrivals(guildId) {
   var docClient = await createAwsDynamoDBObject();
   
-  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  const oneDayAgo = Date.now() - oneDay;
+  // const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
+  // const oneDayAgo = Date.now() - oneDay;
+
+  const timeHorizon = Date.now() - 1000;
   
-  logger.info("Looking for entries less than: " + oneDayAgo);
+  logger.info("Looking for entries less than: " + timeHorizon);
   logger.info("On server: " + guildId);
 
   let params = {
@@ -54,7 +56,7 @@ async function checkNewArrivals(guildId) {
     KeyConditionExpression: "serverId = :serverId AND joinDateTime < :datetime",
     ExpressionAttributeValues: {
       ":serverId": guildId,
-      ":datetime": oneDayAgo
+      ":datetime": timeHorizon
     } 
   };
 
@@ -64,15 +66,16 @@ async function checkNewArrivals(guildId) {
       logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
 
       const guildObject = client.guilds.cache.get(member.serverId);
-      if (guildObject.member(member.memberId)) { 
-        logger.debug("User still exists on server");
-        
-        const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
+      if (guildObject.member(member.memberId) && 
+        (guildObject.member(member.memberId).roles.cache.some(role => role.id === "770038741745270824"))) { 
+          logger.info("User still exists on server and has the role.");
 
-        await sendDM(member.memberId, kickMessage); 
-        await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+        // const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
+
+        // await sendDM(member.memberId, kickMessage); 
+        // await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
       } else {
-        logger.debug("user is no longer on the server");
+        logger.info("User is no longer on the server or no longer has the role.");
       }   
       
       const params = {
@@ -83,7 +86,7 @@ async function checkNewArrivals(guildId) {
         }
       }
 
-      deleteItem(params);
+      // deleteItem(params);
     });
   });
 }
