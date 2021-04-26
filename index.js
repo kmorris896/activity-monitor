@@ -29,7 +29,7 @@ client.on('ready', () => {
   logger.info("Ready.")
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
-    serverConfig(server.id);
+    getServerConfig(server.id);
     const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
     setInterval(checkNewArrivals, oneHour, server.id);
   });
@@ -145,17 +145,16 @@ async function addMember(memberObject) {
   putItem(memberItem);
 }
 
-async function serverConfig(serverId) {
+async function getServerConfig(serverId) {
   const configParams = {
     TableName: "configTable_d8c7c4d5",
-    KeyConditionExpression: "serverId = :serverId",
-    ExpressionAttributeValues: {
-      ":serverId": serverId
+    Key: {
+      "serverId": serverId.toString()
     }
   }
 
   const data = await getItem(configParams);
-  logger.info(JSON.stringify(data, null, 2));
+  // logger.info(JSON.stringify(data, null, 2));
 }
 
 async function getItem(params) {
@@ -168,7 +167,7 @@ async function getItem(params) {
       logger.error("Unable to GET item. Error JSON:", JSON.stringify(err, null, 2));
     } else {
       logger.debug("getItem succeeded:", JSON.stringify(data, null, 2));
-      return data.Items;
+      return data;
     }
   });
 } 
