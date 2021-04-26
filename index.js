@@ -1,7 +1,5 @@
 require("dotenv").config();
-var BOT_CONFIG = {
-  "servers": {}
-};
+var botConfig = {};
 
 // Winston Logger Declarations
 const winston = require('winston');
@@ -16,11 +14,11 @@ const logger = winston.createLogger({
 
 // Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS] });
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 
 // Start Bot
 const TOKEN = process.env.TOKEN;
-// const PREFIX = '&';
+const PREFIX = "<@!771919023792979989>";
 client.login(TOKEN);
 
 client.on('ready', () => {
@@ -31,8 +29,34 @@ client.on('ready', () => {
   logger.info("Ready.")
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
-    setTimeout(checkNewArrivals, 1000, server.id);
+    serverConfig(server.id);
+    const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
+    setInterval(checkNewArrivals, oneHour, server.id);
   });
+});
+
+client.on('message', message => {
+  if (message.content.startsWith(PREFIX)) {
+    const args = message.content.substring(PREFIX.length + 1).split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (command == "hasrole") {
+      const hasRole = message.mentions.roles.first();
+      const configItem = {
+        TableName: "configTable_d8c7c4d5",
+        Item: {
+          "serverId": message.guild.id,
+          "hasRole": hasRole.id
+        }
+      }
+      
+      botConfig[message.guild.id] = {"hasRole": hasRole};
+
+      putItem(configItem);
+    }
+  } else {
+    logger.debug(message.content);
+  }
 });
 
 client.on('guildMemberAdd', member => {
@@ -42,10 +66,10 @@ client.on('guildMemberAdd', member => {
 async function checkNewArrivals(guildId) {
   var docClient = await createAwsDynamoDBObject();
   
-  // const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  // const oneDayAgo = Date.now() - oneDay;
+  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
+  const timeHorizon = Date.now() - oneDay;
 
-  const timeHorizon = Date.now() - 1000;
+  // const timeHorizon = Date.now() - 1000;
   
   logger.info("Looking for entries less than: " + timeHorizon);
   logger.info("On server: " + guildId);
@@ -61,6 +85,11 @@ async function checkNewArrivals(guildId) {
   };
 
   docClient.query(params, async function(err, data) {
+    if (err) {
+      logger.error("Unable to query DynamoDB: " + JSON.stringify(err, null, 2));
+      return 0;
+    }
+
     data.Items.forEach(async function (member) {
       const dateObject = new Date(member.joinDateTime);
       logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
@@ -70,10 +99,10 @@ async function checkNewArrivals(guildId) {
         (guildObject.member(member.memberId).roles.cache.some(role => role.id === "770038741745270824"))) { 
           logger.info("User still exists on server and has the role.");
 
-        // const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
+        const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
 
-        // await sendDM(member.memberId, kickMessage); 
-        // await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+        await sendDM(member.memberId, kickMessage); 
+        await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
       } else {
         logger.info("User is no longer on the server or no longer has the role.");
       }   
@@ -86,7 +115,7 @@ async function checkNewArrivals(guildId) {
         }
       }
 
-      // deleteItem(params);
+      deleteItem(params);
     });
   });
 }
@@ -116,6 +145,33 @@ async function addMember(memberObject) {
   putItem(memberItem);
 }
 
+async function serverConfig(serverId) {
+  const configParams = {
+    TableName: "configTable_d8c7c4d5",
+    KeyConditionExpression: "serverId = :serverId",
+    ExpressionAttributeValues: {
+      ":serverId": serverId
+    }
+  }
+
+  const data = await getItem(configParams);
+  logger.info(JSON.stringify(data, null, 2));
+}
+
+async function getItem(params) {
+  var docClient = await createAwsDynamoDBObject();
+
+  logger.debug("Getting from table: " + params.TableName);
+  logger.debug(JSON.stringify(params, null, 2));
+  docClient.get(params, function(err, data) {
+    if (err) {
+      logger.error("Unable to GET item. Error JSON:", JSON.stringify(err, null, 2));
+    } else {
+      logger.debug("getItem succeeded:", JSON.stringify(data, null, 2));
+      return data.Items;
+    }
+  });
+} 
 
 
 async function putItem(params) {
@@ -135,7 +191,7 @@ async function putItem(params) {
 async function deleteItem(params) {
   var docClient = await createAwsDynamoDBObject();
 
-  logger.debug("Putting into table: " + params.TableName);
+  logger.debug("Deleting from table: " + params.TableName);
   logger.debug(JSON.stringify(params, null, 2));
   docClient.delete(params, function(err, data) {
     if (err) {
@@ -145,7 +201,6 @@ async function deleteItem(params) {
     }
   });
 }
-
 
 async function createAwsDynamoDBObject() {
   var AWS = require("aws-sdk");
