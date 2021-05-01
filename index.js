@@ -154,7 +154,7 @@ async function getServerConfig(serverId) {
   }
 
   const data = await getItem(configParams);
-  // logger.info(JSON.stringify(data, null, 2));
+  logger.info("getServerConfig:" & JSON.stringify(data, null, 2));
 }
 
 async function getItem(params) {
