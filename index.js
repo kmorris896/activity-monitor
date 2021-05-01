@@ -198,19 +198,3 @@ async function deleteItem(params) {
     }
   });
 }
-
-async function createAwsDynamoDBObject() {
-  var AWS = require("aws-sdk");
-  console.log("AWS SDK Version: " + AWS.VERSION);
-
-  const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
-  logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
-  // var awsConfig = new AWS.Config();
-  AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
-  AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-
-  // var dynamodb = new AWS.DynamoDB();
-  var docClient = new AWS.DynamoDB.DocumentClient();
-
-  return docClient;
-}
