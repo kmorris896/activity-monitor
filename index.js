@@ -1,7 +1,7 @@
 require("dotenv").config();
 var botConfig = {};
 
-// Winston Logger Declarations
+// ---------- Winston Logger Declarations
 const winston = require('winston');
 const logger = winston.createLogger({
   level: 'debug',
@@ -11,28 +11,37 @@ const logger = winston.createLogger({
   ]
 });
 
+// ---------- DynamoDB Declarations
+var AWS = require("aws-sdk");
+logger.info("AWS SDK Version: " + AWS.VERSION);
 
-// Discord.js Declarations
+const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
+logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
+
+AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
+AWS.config.apiVersions = { dynamodb: '2012-08-10' };
+var docClient = new AWS.DynamoDB.DocumentClient();
+
+
+// ---------- Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 
-// Start Bot
+// ---------- Start Bot
 const TOKEN = process.env.TOKEN;
 const PREFIX = "<@!771919023792979989>";
 client.login(TOKEN);
 
 client.on('ready', () => {
   logger.info(`Logged in as ${client.user.tag}!`);
-  // loadServerConfig().then(function() {
-  //   logger.info("Configuration Loaded.");
-  // });
-  logger.info("Ready.")
+
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
     getServerConfig(server.id);
     const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
     setInterval(checkNewArrivals, oneHour, server.id);
   });
+  logger.info("Ready.")
 });
 
 client.on('message', message => {
@@ -146,6 +155,7 @@ async function addMember(memberObject) {
 }
 
 async function getServerConfig(serverId) {
+  botConfig[serverId] = {};
   const configParams = {
     TableName: "configTable_d8c7c4d5",
     Key: {
@@ -153,25 +163,14 @@ async function getServerConfig(serverId) {
     }
   }
 
-  const data = await getItem(configParams);
-  logger.info("getServerConfig:" & JSON.stringify(data, null, 2));
+  const data = await docClient.get(configParams).promise();
+  if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
+    logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
+    botConfig[serverId].hasRole = data.Item.hasRole;
+  } else {
+    logger.debug("getItem returned empty");
+  }
 }
-
-async function getItem(params) {
-  var docClient = await createAwsDynamoDBObject();
-
-  logger.debug("Getting from table: " + params.TableName);
-  logger.debug(JSON.stringify(params, null, 2));
-  docClient.get(params, function(err, data) {
-    if (err) {
-      logger.error("Unable to GET item. Error JSON:", JSON.stringify(err, null, 2));
-    } else {
-      logger.debug("getItem succeeded:", JSON.stringify(data, null, 2));
-      return data;
-    }
-  });
-} 
-
 
 async function putItem(params) {
   var docClient = await createAwsDynamoDBObject();
@@ -188,8 +187,6 @@ async function putItem(params) {
 } 
 
 async function deleteItem(params) {
-  var docClient = await createAwsDynamoDBObject();
-
   logger.debug("Deleting from table: " + params.TableName);
   logger.debug(JSON.stringify(params, null, 2));
   docClient.delete(params, function(err, data) {
