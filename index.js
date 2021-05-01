@@ -25,7 +25,15 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 
 // ---------- Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
+const DiscordCollection = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
+client.commands = new DiscordCollection.Collection();
+
+// ---------- Load` Commands
+const botCommands = require('./commands');
+Object.keys(botCommands).map(key => {
+  client.commands.set(botCommands[key].name, botCommands[key]);
+});
 
 // ---------- Start Bot
 const TOKEN = process.env.TOKEN;
@@ -38,8 +46,10 @@ client.on('ready', () => {
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
     getServerConfig(server.id);
+
+    // Check newArrivals every hour
     const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    setInterval(checkNewArrivals, oneHour, server.id);
+    botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, oneHour, server.id);
   });
   logger.info("Ready.")
 });
@@ -48,21 +58,17 @@ client.on('message', message => {
   if (message.content.startsWith(PREFIX)) {
     const args = message.content.substring(PREFIX.length + 1).split(/ +/);
     const command = args.shift().toLowerCase();
+    logger.info(`Called command: ${command}`);
 
-    if (command == "hasrole") {
-      const hasRole = message.mentions.roles.first();
-      const configItem = {
-        TableName: "configTable_d8c7c4d5",
-        Item: {
-          "serverId": message.guild.id,
-          "hasRole": hasRole.id
-        }
-      }
-      
-      botConfig[message.guild.id] = {"hasRole": hasRole};
+    // If the command doesn't exist, silently return
+    if (!client.commands.has(command)) return;
 
-      putItem(configItem);
+    try {
+      client.commands.get(command).execute(message, args);
+    } catch (error) {
+      logger.error(`Failed to execute command ${command}.  ${error}`);
     }
+
   } else {
     logger.debug(message.content);
   }
@@ -72,13 +78,11 @@ client.on('guildMemberAdd', member => {
   addMember(member);
 });
 
-async function checkNewArrivals(guildId) {
-  var docClient = await createAwsDynamoDBObject();
-  
+async function checkNewArrivals(guildId) {  
   const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  const timeHorizon = Date.now() - oneDay;
+  // const timeHorizon = Date.now() - oneDay;
 
-  // const timeHorizon = Date.now() - 1000;
+  const timeHorizon = Date.now() - 1000;
   
   logger.info("Looking for entries less than: " + timeHorizon);
   logger.info("On server: " + guildId);
@@ -116,7 +120,7 @@ async function checkNewArrivals(guildId) {
         logger.info("User is no longer on the server or no longer has the role.");
       }   
       
-      const params = {
+      const deleteParams = {
         TableName: "joinTable_d8c7c4d5",
         Key: {
           "serverId": member.serverId,
@@ -124,7 +128,7 @@ async function checkNewArrivals(guildId) {
         }
       }
 
-      deleteItem(params);
+      deleteItem(deleteParams);
     });
   });
 }
@@ -132,7 +136,6 @@ async function checkNewArrivals(guildId) {
 async function sendDM(memberId, message) {
   await client.users.cache.get(memberId).send(message);
 }
-
 
 async function addMember(memberObject) {
   // logger.info(JSON.stringify(memberObject));
@@ -173,8 +176,6 @@ async function getServerConfig(serverId) {
 }
 
 async function putItem(params) {
-  var docClient = await createAwsDynamoDBObject();
-
   logger.debug("Putting into table: " + params.TableName);
   logger.debug(JSON.stringify(params, null, 2));
   docClient.put(params, function(err, data) {
@@ -191,9 +192,9 @@ async function deleteItem(params) {
   logger.debug(JSON.stringify(params, null, 2));
   docClient.delete(params, function(err, data) {
     if (err) {
-      logger.error("Unable to DELETE item. Error JSON:", JSON.stringify(err, null, 2));
+      logger.error("Unable to DELETE item. Error JSON: " + JSON.stringify(err, null, 2));
     } else {
-      logger.debug("deleteItem succeeded:", JSON.stringify(data, null, 2));
+      logger.debug("deleteItem succeeded: " + JSON.stringify(data, null, 2));
     }
   });
 }
