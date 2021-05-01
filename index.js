@@ -1,5 +1,4 @@
 require("dotenv").config();
-var botConfig = {};
 
 // ---------- Winston Logger Declarations
 const winston = require('winston');
@@ -28,8 +27,9 @@ const { Client, Intents, Discord } = require("discord.js");
 const DiscordCollection = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 client.commands = new DiscordCollection.Collection();
+client.botConfig = new DiscordCollection.Collection();
 
-// ---------- Load` Commands
+// ---------- Load Commands
 const botCommands = require('./commands');
 Object.keys(botCommands).map(key => {
   client.commands.set(botCommands[key].name, botCommands[key]);
@@ -45,11 +45,12 @@ client.on('ready', () => {
 
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
+    client.botConfig[server.id] = new DiscordCollection.Collection();
     getServerConfig(server.id);
 
     // Check newArrivals every hour
     const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, oneHour, server.id);
+    client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, oneHour, server.id);
   });
   logger.info("Ready.")
 });
@@ -158,7 +159,6 @@ async function addMember(memberObject) {
 }
 
 async function getServerConfig(serverId) {
-  botConfig[serverId] = {};
   const configParams = {
     TableName: "configTable_d8c7c4d5",
     Key: {
@@ -169,7 +169,7 @@ async function getServerConfig(serverId) {
   const data = await docClient.get(configParams).promise();
   if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
     logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
-    botConfig[serverId].hasRole = data.Item.hasRole;
+    client.botConfig[serverId].set("hasRole", data.Item.hasRole);
   } else {
     logger.debug("getItem returned empty");
   }
