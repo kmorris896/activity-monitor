@@ -49,8 +49,7 @@ client.on('ready', () => {
     getServerConfig(server.id);
 
     // Check newArrivals every hour
-    // const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    const interval = 1000 * 60 * 5; // 5 minutes
+    const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
     client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, interval, server.id);
     checkNewArrivals(server.id);
   });
@@ -62,6 +61,8 @@ client.on('message', message => {
     const args = message.content.substring(PREFIX.length + 1).split(/ +/);
     const command = args.shift().toLowerCase();
     logger.info(`Called command: ${command}`);
+
+    if (command == "checknewarrivals") checkNewArrivals(message.guild.id);
 
     // If the command doesn't exist, silently return
     if (!client.commands.has(command)) return;
@@ -83,9 +84,7 @@ client.on('guildMemberAdd', member => {
 
 async function checkNewArrivals(guildId) {  
   const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  // const timeHorizon = Date.now() - oneDay;
-
-  const timeHorizon = Date.now() - 5000;
+  const timeHorizon = Date.now() - oneDay;
   
   logger.info("Looking for entries less than: " + timeHorizon);
   logger.info("On server: " + guildId);
@@ -107,6 +106,7 @@ async function checkNewArrivals(guildId) {
       return 0;
     }
 
+    logger.error("Items retrieved: " + data.Items.length);
     data.Items.forEach(async function (member) {
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
