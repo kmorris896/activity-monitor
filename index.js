@@ -49,8 +49,10 @@ client.on('ready', () => {
     getServerConfig(server.id);
 
     // Check newArrivals every hour
-    const oneHour = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, oneHour, server.id);
+    // const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
+    const interval = 1000 * 60 * 5; // 5 minutes
+    client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, interval, server.id);
+    checkNewArrivals(server.id);
   });
   logger.info("Ready.")
 });
@@ -83,7 +85,7 @@ async function checkNewArrivals(guildId) {
   const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
   // const timeHorizon = Date.now() - oneDay;
 
-  const timeHorizon = Date.now() - 1000;
+  const timeHorizon = Date.now() - 5000;
   
   logger.info("Looking for entries less than: " + timeHorizon);
   logger.info("On server: " + guildId);
@@ -98,6 +100,7 @@ async function checkNewArrivals(guildId) {
     } 
   };
 
+
   docClient.query(params, async function(err, data) {
     if (err) {
       logger.error("Unable to query DynamoDB: " + JSON.stringify(err, null, 2));
@@ -105,31 +108,43 @@ async function checkNewArrivals(guildId) {
     }
 
     data.Items.forEach(async function (member) {
+      let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
       logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
 
       const guildObject = client.guilds.cache.get(member.serverId);
-      if (guildObject.member(member.memberId) && 
-        (guildObject.member(member.memberId).roles.cache.some(role => role.id === "770038741745270824"))) { 
-          logger.info("User still exists on server and has the role.");
+      if (guildObject.member(member.memberId)) {
+        if (client.botConfig[member.serverId].has("hasRole") &&
+          (guildObject.member(member.memberId).roles.cache.some(role => role.id === client.botConfig[member.serverId].get("hasRole")))) {
+            logger.info("User still exists on server and has the role and has been on the server for the allotted time.");
+            
+            const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
 
-        const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
-
-        await sendDM(member.memberId, kickMessage); 
-        await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+            const dmStatus = await sendDM(member.memberId, kickMessage); 
+            const kickStatus = await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+            deleteJoinEntry = kickStatus.deleted;
+        } else {
+          logger.info("User exists but doesn't have the role anymore.  Nothing left to do except delete the entry.");
+          deleteJoinEntry = true;
+        }
       } else {
-        logger.info("User is no longer on the server or no longer has the role.");
+        logger.info("User is no longer on the server.");
+        deleteJoinEntry = true;
       }   
       
-      const deleteParams = {
-        TableName: "joinTable_d8c7c4d5",
-        Key: {
-          "serverId": member.serverId,
-          "memberId": member.memberId
-        }
-      }
+      if (deleteJoinEntry) {
+        const deleteParams = {
+          TableName: "joinTable_d8c7c4d5",
+          Key: {
+            "serverId": member.serverId,
+            "memberId": member.memberId
+          }
+        };
 
-      deleteItem(deleteParams);
+        deleteItem(deleteParams);
+      } else {
+        logger.info("User could not be deleted.");
+      }
     });
   });
 }
@@ -180,9 +195,9 @@ async function putItem(params) {
   logger.debug(JSON.stringify(params, null, 2));
   docClient.put(params, function(err, data) {
     if (err) {
-      logger.error("Unable to PUT item. Error JSON:", JSON.stringify(err, null, 2));
+      logger.error("Unable to PUT item. Error JSON: " + JSON.stringify(err, null, 2));
     } else {
-      logger.debug("putItem succeeded:", JSON.stringify(data, null, 2));
+      logger.debug("putItem succeeded: " + JSON.stringify(data, null, 2));
     }
   });
 } 
