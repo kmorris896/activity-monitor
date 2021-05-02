@@ -106,7 +106,7 @@ async function checkNewArrivals(guildId) {
       return 0;
     }
 
-    logger.error("Items retrieved: " + data.Items.length);
+    logger.debug("Items retrieved: " + data.Items.length);
     data.Items.forEach(async function (member) {
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
