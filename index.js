@@ -22,6 +22,11 @@ AWS.config.apiVersions = { dynamodb: '2012-08-10' };
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 
+// ---------- DynamoDB Configuration
+const joinTable   = "joinTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
+const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
+
+
 // ---------- Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
 const DiscordCollection = require('discord.js');
@@ -90,7 +95,7 @@ async function checkNewArrivals(guildId) {
   logger.info("On server: " + guildId);
 
   let params = {
-    TableName: "joinTable_d8c7c4d5",
+    TableName: joinTable,
     IndexName: "joinTable_joinDateTime",
     KeyConditionExpression: "serverId = :serverId AND joinDateTime < :datetime",
     ExpressionAttributeValues: {
@@ -134,7 +139,7 @@ async function checkNewArrivals(guildId) {
       
       if (deleteJoinEntry) {
         const deleteParams = {
-          TableName: "joinTable_d8c7c4d5",
+          TableName: joinTable,
           Key: {
             "serverId": member.serverId,
             "memberId": member.memberId
@@ -161,7 +166,7 @@ async function addMember(memberObject) {
   logger.info("Joined at: " + memberObject.joinedTimestamp);
 
   let memberItem = {
-    TableName: "joinTable_d8c7c4d5",
+    TableName: joinTable,
     Item: {
       "serverId": memberObject.guild.id,
       "memberId": memberObject.id,
@@ -175,7 +180,7 @@ async function addMember(memberObject) {
 
 async function getServerConfig(serverId) {
   const configParams = {
-    TableName: "configTable_d8c7c4d5",
+    TableName: configTable,
     Key: {
       "serverId": serverId.toString()
     }
