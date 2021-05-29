@@ -88,7 +88,7 @@ client.on('message', message => {
 });
 
 client.on('guildMemberAdd', member => {
-  addMember(member);
+  client.commands.get('welcome_activity').addMember(member, logger, docClient);
 });
 
 async function checkNewArrivals(guildId) {  
@@ -162,26 +162,6 @@ async function sendDM(memberId, message) {
   await client.users.cache.get(memberId).send(message);
 }
 
-async function addMember(memberObject) {
-  // logger.info(JSON.stringify(memberObject));
-  logger.info("SERVER JOIN ON " + memberObject.guild.name + " (" + memberObject.guild.id + ")");
-  logger.info("memberObject Name: " + memberObject.displayName);
-  logger.info("memberObject ID: " + memberObject.id);
-  logger.info("Joined at: " + memberObject.joinedTimestamp);
-
-  let memberItem = {
-    TableName: joinTable,
-    Item: {
-      "serverId": memberObject.guild.id,
-      "memberId": memberObject.id,
-      "joinDateTime": memberObject.joinedTimestamp
-    }
-  }
-  
-  logger.info("Adding to DynamoDB...");
-  putItem(memberItem);
-}
-
 async function getServerConfig(serverId) {
   const configParams = {
     TableName: configTable,
@@ -198,18 +178,6 @@ async function getServerConfig(serverId) {
     logger.debug("getItem returned empty");
   }
 }
-
-async function putItem(params) {
-  logger.debug("Putting into table: " + params.TableName);
-  logger.debug(JSON.stringify(params, null, 2));
-  docClient.put(params, function(err, data) {
-    if (err) {
-      logger.error("Unable to PUT item. Error JSON: " + JSON.stringify(err, null, 2));
-    } else {
-      logger.debug("putItem succeeded: " + JSON.stringify(data, null, 2));
-    }
-  });
-} 
 
 async function deleteItem(params) {
   logger.debug("Deleting from table: " + params.TableName);
