@@ -42,11 +42,12 @@ Object.keys(botCommands).map(key => {
 
 // ---------- Start Bot
 const TOKEN = process.env.TOKEN;
-const PREFIX = "<@!771919023792979989>";
+var   PREFIX = "";
 client.login(TOKEN);
 
 client.on('ready', () => {
   logger.info(`Logged in as ${client.user.tag}!`);
+  PREFIX = "<@!" + client.user.id + ">";
 
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
@@ -58,7 +59,7 @@ client.on('ready', () => {
     client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, interval, server.id);
     checkNewArrivals(server.id);
   });
-  logger.info("Ready.")
+  logger.info("Ready.");
 });
 
 client.on('message', message => {
@@ -78,6 +79,9 @@ client.on('message', message => {
       logger.error(`Failed to execute command ${command}.  ${error}`);
     }
 
+  } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
+           ||(message.channel.id == "740177216134053890")) {
+    client.commands.get('channel_activity').execute(logger, message);
   } else {
     logger.debug(message.content);
   }
