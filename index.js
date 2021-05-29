@@ -80,7 +80,7 @@ client.on('message', message => {
     }
 
   } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
-           ||(message.channel.id == "740177216134053890")) {
+           ||(message.channel.id == "704057794571272366")) {
     client.commands.get('channel_activity').execute(message, logger, docClient);
   } else {
     logger.debug(message.content);
