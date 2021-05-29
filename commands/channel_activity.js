@@ -5,6 +5,9 @@ module.exports = {
   description: 'Watch channel activity',
   execute(msg, logger, docClient) {
     const messageWordCount = msg.content.trim().split(/\s+/).length;
+
+    if (msg.content.startsWith('!') || msg.content.startsWith('.') || msg.author.bot === true) 
+      return false;
     
     msg.channel.messages.fetch({ limit: 5 , before: msg.id }).then(function (messages) {
       const nonbot_messages = messages.filter(message => msg.author.bot === false);
@@ -35,14 +38,15 @@ module.exports = {
       logger.debug(`messageDateTime: ${msg.createdTimestamp}`);
       logger.debug(`lastChannelMessageDelta: ${lastChannelMessageDelta}`);
 
-      docClient.put(chatItem, function(err, data) {
+      return docClient.put(chatItem, function(err, data) {
         if (err) {
           logger.error("Unable to PUT chat item.  Error JSON: " + JSON.stringify(err, null, 2));
+          return true;
         } else {
           logger.debug("chatItem putItem succeeded!");
+          return false;
         }
       });
     });
-
   }
 }
