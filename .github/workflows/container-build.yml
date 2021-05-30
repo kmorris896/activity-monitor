@@ -1,13 +1,11 @@
 name: Container Build
+# This workflow triggers when a new tag is pushed to the repository.
+# If everything goes right, it should be the last workflow that fires.
 
 on:
-  pull_request:
-    types: [opened, synchronized, repoened]
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'README.md'
+    tags:
+      - v*
 
 defaults:
   run:
