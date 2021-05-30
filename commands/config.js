@@ -1,3 +1,6 @@
+// ---------- DynamoDB Configuration
+const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
+
 // ---------- DynamoDB Declarations
 var AWS = require("aws-sdk");
 const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
@@ -40,5 +43,26 @@ module.exports = {
         } 
       }
     }
+  },
+  getServerConfig(serverId, client, logger, docClient) {
+    const configParams = {
+      TableName: configTable,
+      Key: {
+        "serverId": serverId.toString()
+      }
+    }
+  
+    docClient.get(configParams, function(err, data) {
+      if (err) {
+        logger.error("Unable to read item.  Error JSON: " + JSON.stringify(err, null, 2));
+      } else {
+        if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
+          logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
+          client.botConfig[serverId].set("hasRole", data.Item.hasRole);
+        } else {
+          logger.debug("getItem returned empty");
+        }  
+      }
+    });
   }
 }
