@@ -51,8 +51,8 @@ client.on('ready', () => {
 
     // Check newArrivals every hour
     const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    client.botConfig[server.id].newArrivalInterval = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, logger, docClient);
-    client.commands.get('welcome_activity').checkNewArrivals(server.id, logger, docClient);
+    client.botConfig[server.id].newArrivalInterval = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, client, logger, docClient);
+    client.commands.get('welcome_activity').checkNewArrivals(server.id, client, logger, docClient);
   });
   logger.info("Ready.");
 });
@@ -64,7 +64,7 @@ client.on('message', message => {
     logger.info(`Called command: ${command}`);
 
     if (command == "checknewarrivals") 
-      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, logger, docClient);
+      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger, docClient);
 
     // If the command doesn't exist, silently return
     if (!client.commands.has(command)) return;
