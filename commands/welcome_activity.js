@@ -32,7 +32,7 @@ module.exports = {
     });
   },
 
-  checkNewArrivals(guildId, logger, docClient) {
+  checkNewArrivals(guildId, client, logger, docClient) {
     const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
     const timeHorizon = Date.now() - oneDay;
     
