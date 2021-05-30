@@ -22,11 +22,6 @@ AWS.config.apiVersions = { dynamodb: '2012-08-10' };
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 
-// ---------- DynamoDB Configuration
-const joinTable   = "joinTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
-const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
-
-
 // ---------- Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
 const DiscordCollection = require('discord.js');
@@ -52,12 +47,12 @@ client.on('ready', () => {
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
     client.botConfig[server.id] = new DiscordCollection.Collection();
-    getServerConfig(server.id);
+    client.commands.get('config').getServerConfig(server.id, client, logger, docClient);
 
     // Check newArrivals every hour
     const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    client.botConfig[server.id].newArrivalInterval = setInterval(checkNewArrivals, interval, server.id);
-    checkNewArrivals(server.id);
+    client.botConfig[server.id].newArrivalInterval = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, logger, docClient);
+    client.commands.get('welcome_activity').checkNewArrivals(server.id, logger, docClient);
   });
   logger.info("Ready.");
 });
@@ -68,7 +63,8 @@ client.on('message', message => {
     const command = args.shift().toLowerCase();
     logger.info(`Called command: ${command}`);
 
-    if (command == "checknewarrivals") checkNewArrivals(message.guild.id);
+    if (command == "checknewarrivals") 
+      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, logger, docClient);
 
     // If the command doesn't exist, silently return
     if (!client.commands.has(command)) return;
@@ -90,103 +86,3 @@ client.on('message', message => {
 client.on('guildMemberAdd', member => {
   client.commands.get('welcome_activity').addMember(member, logger, docClient);
 });
-
-async function checkNewArrivals(guildId) {  
-  const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-  const timeHorizon = Date.now() - oneDay;
-  
-  logger.info("Looking for entries less than: " + timeHorizon);
-  logger.info("On server: " + guildId);
-
-  let params = {
-    TableName: joinTable,
-    IndexName: "joinTable_joinDateTime",
-    KeyConditionExpression: "serverId = :serverId AND joinDateTime < :datetime",
-    ExpressionAttributeValues: {
-      ":serverId": guildId,
-      ":datetime": timeHorizon
-    } 
-  };
-
-
-  docClient.query(params, async function(err, data) {
-    if (err) {
-      logger.error("Unable to query DynamoDB: " + JSON.stringify(err, null, 2));
-      return 0;
-    }
-
-    logger.debug("Items retrieved: " + data.Items.length);
-    data.Items.forEach(async function (member) {
-      let deleteJoinEntry = false;
-      const dateObject = new Date(member.joinDateTime);
-      logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
-
-      const guildObject = client.guilds.cache.get(member.serverId);
-      if (guildObject.member(member.memberId)) {
-        if (client.botConfig[member.serverId].has("hasRole") &&
-          (guildObject.member(member.memberId).roles.cache.some(role => role.id === client.botConfig[member.serverId].get("hasRole")))) {
-            logger.info("User still exists on server and has the role and has been on the server for the allotted time.");
-            
-            const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
-
-            const dmStatus = await sendDM(member.memberId, kickMessage); 
-            const kickStatus = await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
-            deleteJoinEntry = kickStatus.deleted;
-        } else {
-          logger.info("User exists but doesn't have the role anymore.  Nothing left to do except delete the entry.");
-          deleteJoinEntry = true;
-        }
-      } else {
-        logger.info("User is no longer on the server.");
-        deleteJoinEntry = true;
-      }   
-      
-      if (deleteJoinEntry) {
-        const deleteParams = {
-          TableName: joinTable,
-          Key: {
-            "serverId": member.serverId,
-            "memberId": member.memberId
-          }
-        };
-
-        deleteItem(deleteParams);
-      } else {
-        logger.info("User could not be deleted.");
-      }
-    });
-  });
-}
-
-async function sendDM(memberId, message) {
-  await client.users.cache.get(memberId).send(message);
-}
-
-async function getServerConfig(serverId) {
-  const configParams = {
-    TableName: configTable,
-    Key: {
-      "serverId": serverId.toString()
-    }
-  }
-
-  const data = await docClient.get(configParams).promise();
-  if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
-    logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
-    client.botConfig[serverId].set("hasRole", data.Item.hasRole);
-  } else {
-    logger.debug("getItem returned empty");
-  }
-}
-
-async function deleteItem(params) {
-  logger.debug("Deleting from table: " + params.TableName);
-  logger.debug(JSON.stringify(params, null, 2));
-  docClient.delete(params, function(err, data) {
-    if (err) {
-      logger.error("Unable to DELETE item. Error JSON: " + JSON.stringify(err, null, 2));
-    } else {
-      logger.debug("deleteItem succeeded: " + JSON.stringify(data, null, 2));
-    }
-  });
-}
