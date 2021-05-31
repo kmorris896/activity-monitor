@@ -13,8 +13,6 @@ module.exports = {
   
         if (typeof hasRole != "undefined") {
           try {
-            msg.client.logger.debug("DEBUG config: " + JSON.stringify(msg.client.botConfig[msg.guild.id].get("config").hasRole));
-            msg.client.logger.debug(typeof msg.client.botConfig[msg.guild.id].get("config"));
             msg.client.botConfig[msg.guild.id].get("config").hasRole = hasRole.id;
             await saveConfig(msg.guild.id, msg.client);
             return msg.channel.send("Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").hasRole + "> within the time horizon.");
@@ -23,8 +21,8 @@ module.exports = {
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
           }          
         } else {
-          if (msg.client.botConfig[msg.guild.id].config.hasOwnProperty("hasRole")) {
-            return msg.channel.send("Bot has been configured to kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("hasRole") + ">");
+          if (msg.client.botConfig[msg.guild.id].get("config").hasOwnProperty("hasRole") && (msg.client.botConfig[msg.guild.id].get("config").hasRole !="")) {
+            return msg.channel.send("Bot has been configured to kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").hasRole + ">");
           } else {
             return msg.channel.send("Bot has not been configured to look for a role.");
           } 
