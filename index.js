@@ -60,28 +60,33 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-  if (message.content.startsWith(PREFIX)) {
-    const args = message.content.substring(PREFIX.length + 1).split(/ +/);
-    const command = args.shift().toLowerCase();
-    logger.info(`Called command: ${command}`);
-
-    if (command == "checknewarrivals") 
-      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger, docClient);
-
-    // If the command doesn't exist, silently return
-    if (!client.commands.has(command)) return;
-
-    try {
-      client.commands.get(command).execute(message, args);
-    } catch (error) {
-      logger.error(`Failed to execute command ${command}.  ${error}`);
-    }
-
-  } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
-           ||(message.channel.id == "704057794571272366")) {
-    client.commands.get('channel_activity').execute(message, logger, docClient);
+  // If the message is from myself or it's from a bot, ignore.
+  if ((message.author.id == client.user.id) || (message.author.bot)) {
+    logger.debug("");
   } else {
-    logger.debug(message.content);
+    if (message.content.startsWith(PREFIX)) {
+      const args = message.content.substring(PREFIX.length + 1).split(/ +/);
+      const command = args.shift().toLowerCase();
+      logger.info(`Called command: ${command}`);
+
+      if (command == "checknewarrivals") 
+        client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger, docClient);
+
+      // If the command doesn't exist, silently return
+      if (!client.commands.has(command)) return;
+
+      try {
+        client.commands.get(command).execute(message, args);
+      } catch (error) {
+        logger.error(`Failed to execute command ${command}.  ${error}`);
+      }
+
+    } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
+            ||(message.channel.id == "704057794571272366")) {
+      client.commands.get('channel_activity').execute(message, logger, docClient);
+    } else {
+      logger.debug(message.content);
+    }
   }
 });
 
