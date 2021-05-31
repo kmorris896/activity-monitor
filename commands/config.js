@@ -5,8 +5,41 @@ const docClient = null;
 module.exports = {
   name: 'config',
   description: 'Configure the bot',
-  async execute(msg, args) {
+  async execute(msg, args) {  
     if(msg.member.hasPermission('ADMINISTRATOR')) {
+      const configSetting = args[0].toLowerCase();
+
+      let configSettingsObject = {};
+      for (const key in msg.client.botConfig[msg.guild.id].get("config")) {
+        configSettingsObject[key.toLowerCase()] = key;
+      }
+
+      if ((args.length == 1) && configSettingsObject.hasOwnProperty(configSetting)) {
+        const key = configSettingsObject[configSetting];
+        msg.client.logger.debug("has command: " + configSetting + " which maps to: " + key);
+        
+        let replyMessage = "";
+        if (msg.client.botConfig[msg.guild.id].get("config").hasOwnProperty(key) && (msg.client.botConfig[msg.guild.id].get("config")[key] !="")) {
+          switch (configSetting) {
+            case "hasrole":
+              replyMessage = "Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config")[key] + "> within the time horizon."
+              break;
+          
+            case "kickannouncementchannel":
+              replyMessage = "Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config")[key] + ">."
+              break;
+
+            default:
+              replyMessage = key + " has value: `" + msg.client.botConfig[msg.guild.id].get("config")[key] + "`"
+              break;
+          }
+        } else {
+          replyMessage = key + " has not been defined.";
+        }
+
+        msg.channel.send(replyMessage);
+      }
+
       if (args[0].toLowerCase() == "hasrole") {
         msg.client.logger.debug("config hasrole");
         const hasRole = msg.mentions.roles.first();
@@ -20,12 +53,20 @@ module.exports = {
             msg.client.logger.error("config hasrole - unable to store config item into database: " + JSON.stringify(err, null, 2));
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
           }          
-        } else {
-          if (msg.client.botConfig[msg.guild.id].get("config").hasOwnProperty("hasRole") && (msg.client.botConfig[msg.guild.id].get("config").hasRole !="")) {
-            return msg.channel.send("Bot has been configured to kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").hasRole + ">");
-          } else {
-            return msg.channel.send("Bot has not been configured to look for a role.");
-          } 
+        }
+      } else if (args[0].toLowerCase() == "kickannouncementchannel") {
+        msg.client.logger.debug("config kickannouncementchannel");
+        const hasChannel = msg.mentions.channels.first();
+
+        if (typeof hasChannel != "undefined") {
+          try {
+            msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel = hasChannel.id;
+            await saveConfig(msg.guild.id, msg.client);
+            return msg.channel.send("Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel + "> within the time horizon.");
+          } catch(err) {
+            msg.client.logger.error("config hasrole - unable to store config item into database: " + JSON.stringify(err, null, 2));
+            return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }          
         }
       }
     } else {
