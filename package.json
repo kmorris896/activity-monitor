@@ -1,6 +1,6 @@
 {
   "name": "activity-monitor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Description to come",
   "main": "index.js",
   "dependencies": {
