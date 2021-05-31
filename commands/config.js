@@ -27,19 +27,16 @@ module.exports = {
               "hasRole": hasRole.id
             }
           }
-          
-          docClient.putItem(configItem, msg.client.logger);
-          // docClient.put(configItem, function(err, data) {
-          //   if (err) {
-          //     console.error("Unable to PUT item. Error JSON:" + JSON.stringify(err, null, 2));
-          //   } else {
-          //     console.debug("putItem succeeded:" + JSON.stringify(data, null, 2));
-          //     msg.client.botConfig[msg.guild.id].set("hasRole", hasRole.id);
-          //     return msg.channel.send("Bot will kick users with the role <@&" + hasRole.id + "> within the timeframe.");
-          //   }
-          // });
+          try {
+            docClient.putItem(configItem, msg.client.logger);
+            msg.client.botConfig[msg.guild.id].config.set("hasRole", hasRole.id);
+            return msg.channel.send("Bot will kick users with the role <@&" + hasRole.id + "> within the time horizon.");
+          } catch(err) {
+            msg.client.logger.error(JSON.stringify(err, null, 2));
+            return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }          
         } else {
-          if (msg.client.botConfig[msg.guild.id].has("hasRole")) {
+          if (msg.client.botConfig[msg.guild.id].config.has("hasRole")) {
             return msg.channel.send("Bot has been configured to kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("hasRole") + ">");
           } else {
             return msg.channel.send("Bot has not been configured to look for a role.");
@@ -64,7 +61,7 @@ module.exports = {
       } else {
         if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
           logger.debug("DEPRECATION ALERT: getServerConfig hasRole detected.  Converting to config object");
-          client.botConfig[serverId].set("config", convertToConfigObject(serverId, data.Item.hasRole, docClient));
+          client.botConfig[serverId].set("config", convertToConfigObject(serverId, data.Item.hasRole, logger));
         } else {
           logger.debug("getItem returned empty");
         }  
@@ -73,7 +70,7 @@ module.exports = {
   }
 }
 
-function convertToConfigObject(serverId, hasRole_IN, docClient) {
+function convertToConfigObject(serverId, hasRole_IN, logger) {
   const configObject = {
     "hasRole": hasRole_IN,
     "checkInterval": "1h",
@@ -82,6 +79,17 @@ function convertToConfigObject(serverId, hasRole_IN, docClient) {
     "kickAnnouncementChannel": ""
   };
 
+  try{
+    saveConfig(serverId, configObject);
+  } catch(err) {
+    logger.error("Unable able to save config after converting hasRole to Config Object.");
+    logger.error(JSON.stringify(err, null, 2));
+  }
+
+  return configObject; 
+}
+
+function saveConfig(serverId, configObject) {
   const configItem = {
     TableName: configTable,
     Item: {
@@ -90,13 +98,5 @@ function convertToConfigObject(serverId, hasRole_IN, docClient) {
     }
   }
   
-  docClient.put(configItem, function(err, data) {
-    if (err) {
-      console.error("Unable to PUT item. Error JSON:" + JSON.stringify(err, null, 2));
-    } else {
-      console.debug("putItem succeeded:" + JSON.stringify(data, null, 2));
-    }
-  });
-
-  return configObject;
+  docClient.putItem(configItem);
 }
