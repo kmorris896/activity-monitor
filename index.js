@@ -19,7 +19,7 @@ logger.debug("Setting endpoint: " + awsDynamoDbEndpoint);
 
 AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
 AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-var docClient = new AWS.DynamoDB.DocumentClient();
+var docClient = new AWS.DynamoDB.DocumentClient(); // Deprecating soon
 
 
 // ---------- Discord.js Declarations
@@ -28,6 +28,7 @@ const DiscordCollection = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 client.commands = new DiscordCollection.Collection();
 client.botConfig = new DiscordCollection.Collection();
+client.dynamoClient = new AWS.DynamoDB.DocumentClient();
 client.logger = logger;
 
 // ---------- Load Commands
