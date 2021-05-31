@@ -1,6 +1,5 @@
 // ---------- DynamoDB Configuration
 const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
-const docClient = null;
 
 module.exports = {
   name: 'config',
@@ -22,15 +21,19 @@ module.exports = {
         if (msg.client.botConfig[msg.guild.id].get("config").hasOwnProperty(key) && (msg.client.botConfig[msg.guild.id].get("config")[key] !="")) {
           switch (configSetting) {
             case "hasrole":
-              replyMessage = "Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config")[key] + "> within the time horizon."
+              replyMessage = "Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config")[key] + "> within the time horizon.";
               break;
           
             case "kickannouncementchannel":
-              replyMessage = "Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config")[key] + ">."
+              replyMessage = "Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config")[key] + ">.";
+              break;
+
+            case "kickmessage":
+              replyMessage = "Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id].get("config")[key];
               break;
 
             default:
-              replyMessage = key + " has value: `" + msg.client.botConfig[msg.guild.id].get("config")[key] + "`"
+              replyMessage = key + " has value: `" + msg.client.botConfig[msg.guild.id].get("config")[key] + "`";
               break;
           }
         } else {
@@ -40,7 +43,7 @@ module.exports = {
         msg.channel.send(replyMessage);
       }
 
-      if (args[0].toLowerCase() == "hasrole") {
+      if ((args.length > 1) && (args[0].toLowerCase() == "hasrole")) {
         msg.client.logger.debug("config hasrole");
         const hasRole = msg.mentions.roles.first();
   
@@ -54,7 +57,7 @@ module.exports = {
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
           }          
         }
-      } else if (args[0].toLowerCase() == "kickannouncementchannel") {
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "kickannouncementchannel")) {
         msg.client.logger.debug("config kickannouncementchannel");
         const hasChannel = msg.mentions.channels.first();
 
@@ -62,12 +65,25 @@ module.exports = {
           try {
             msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel = hasChannel.id;
             await saveConfig(msg.guild.id, msg.client);
-            return msg.channel.send("Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel + "> within the time horizon.");
+            return msg.channel.send("Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel + ">.");
           } catch(err) {
-            msg.client.logger.error("config hasrole - unable to store config item into database: " + JSON.stringify(err, null, 2));
+            msg.client.logger.error("config kickAnnouncementChannel - unable to store config item into database: " + JSON.stringify(err, null, 2));
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
           }          
         }
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "kickmessage")) {
+        msg.client.logger.debug("config kickmessage");
+        const PREFIX = "<@!" + msg.client.user.id + "> config " + args[0] + " ";
+        const message = msg.content.substring(PREFIX.length)
+
+        try {
+          msg.client.botConfig[msg.guild.id].get("config").kickMessage = message;
+          await saveConfig(msg.guild.id, msg.client);
+          return msg.channel.send("Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id].get("config").kickMessage);
+        } catch(err) {
+          msg.client.logger.error("config kickmessage - unable to store config item into database: " + JSON.stringify(err, null, 2));
+          return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+        }          
       }
     } else {
       msg.reply('You must must be an administrator in order configure the bot.')
