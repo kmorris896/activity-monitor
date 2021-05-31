@@ -70,9 +70,11 @@ module.exports = {
               
               const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
               
-              const dmStatus = await sendDM(member.memberId, kickMessage); 
-              const kickStatus = await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
-              deleteJoinEntry = kickStatus.deleted;
+              const dmStatus = await client.users.cache.get(member.memberId).send(kickMessage);
+              if (typeof dmStatus.id == "string") {
+                const kickStatus = await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+                deleteJoinEntry = kickStatus.deleted;
+              } 
           } else {
             logger.info("User exists but doesn't have the role anymore.  Nothing left to do except delete the entry.");
             deleteJoinEntry = true;
