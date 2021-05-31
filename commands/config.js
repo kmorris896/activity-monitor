@@ -19,7 +19,7 @@ module.exports = {
 
       if (typeof hasRole != "undefined") {
         const configItem = {
-          TableName: "configTable_d8c7c4d5",
+          TableName: configTable,
           Item: {
             "serverId": msg.guild.id,
             "hasRole": hasRole.id
@@ -57,12 +57,40 @@ module.exports = {
         logger.error("Unable to read item.  Error JSON: " + JSON.stringify(err, null, 2));
       } else {
         if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
-          logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
-          client.botConfig[serverId].set("hasRole", data.Item.hasRole);
+          logger.debug("DEPRECATION ALERT: getServerConfig hasRole detected.  Converting to config object");
+          client.botConfig[serverId].set("config", convertToConfigObject(serverId, data.Item.hasRole, docClient));
         } else {
           logger.debug("getItem returned empty");
         }  
       }
     });
   }
+}
+
+function convertToConfigObject(serverId, hasRole_IN, docClient) {
+  const configObject = {
+    "hasRole": hasRole_IN,
+    "checkInterval": "1h",
+    "timeHorizon": "24h",
+    "kickMessage": "",
+    "kickAnnouncementChannel": ""
+  };
+
+  const configItem = {
+    TableName: configTable,
+    Item: {
+      "serverId": serverId,
+      "config": configObject
+    }
+  }
+  
+  docClient.put(configItem, function(err, data) {
+    if (err) {
+      console.error("Unable to PUT item. Error JSON:" + JSON.stringify(err, null, 2));
+    } else {
+      console.debug("putItem succeeded:" + JSON.stringify(data, null, 2));
+    }
+  });
+
+  return configObject;
 }
