@@ -6,14 +6,17 @@ module.exports = {
   description: 'Configure the bot',
   async execute(msg, args) {  
     if(msg.member.hasPermission('ADMINISTRATOR')) {
-      const configSetting = args[0].toLowerCase();
 
       let configSettingsObject = {};
       for (const key in msg.client.botConfig[msg.guild.id].get("config")) {
         configSettingsObject[key.toLowerCase()] = key;
       }
 
-      if ((args.length == 1) && configSettingsObject.hasOwnProperty(configSetting)) {
+      if (args.length === 0) {
+        msg.reply('You must provide a configuration item in order for the command to work.  Please review the documentation for full details.');
+      }
+      if ((args.length == 1) && configSettingsObject.hasOwnProperty(args[0].toLowerCase())) {
+        const configSetting = args[0].toLowerCase();
         const key = configSettingsObject[configSetting];
         msg.client.logger.debug("has command: " + configSetting + " which maps to: " + key);
         
@@ -86,7 +89,7 @@ module.exports = {
         }          
       }
     } else {
-      msg.reply('You must must be an administrator in order configure the bot.')
+      msg.reply('You must be an administrator in order configure the bot.');
     }
   },
 
