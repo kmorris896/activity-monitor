@@ -1,18 +1,6 @@
-// ---------- DynamoDB Configuration
-const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
-
 // ---------- fs Declarations
 const fs = require("fs");
 
-
-// ---------- DynamoDB Declarations
-var AWS = require("aws-sdk");
-const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
-console.log("Setting endpoint: " + awsDynamoDbEndpoint);
-
-AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
-AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-var docClient = new AWS.DynamoDB.DocumentClient();
 
 module.exports = {
   name: 'config',
