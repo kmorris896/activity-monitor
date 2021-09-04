@@ -10,8 +10,16 @@ const logger = winston.createLogger({
   ]
 });
 
-// ---------- DynamoDB Declarations
-var AWS = require("aws-sdk");
+// ---------- sqlite Declarations
+var AWS = require("sqlite3").verbose();
+let db = new sqlite3.Database(process.env.DBFILE, (err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Connected to the database: ' & process.env.DBFILE);
+});
+
+
 logger.info("AWS SDK Version: " + AWS.VERSION);
 
 const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
