@@ -43,10 +43,10 @@ client.on('ready', () => {
   PREFIX = "<@!" + client.user.id + ">";
 
   // ---------- Load Bot Config
+  client.commands.get('config').initializeConfig(client, logger);
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
     client.botConfig[server.id] = new DiscordCollection.Collection();
-    client.commands.get('config').initializeConfig(client, logger);
 
     // Check newArrivals every hour
     const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
