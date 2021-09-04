@@ -1,7 +1,4 @@
-// ---------- DynamoDB Configuration
-const joinTable   = "joinTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
-
-module.exports = {
+  module.exports = {
   name: 'welcome_activity',
   description: 'Welcome Activity Monitor',
 
@@ -24,25 +21,15 @@ module.exports = {
     });
   },
 
-  checkNewArrivals(guildId, client, logger) {
+  async checkNewArrivals(guildId, client, logger) {
     const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
     const timeHorizon = Date.now() - oneDay;
     
     logger.info("Looking for entries less than: " + timeHorizon);
     logger.info("On server: " + guildId);
-  
-    let params = {
-      TableName: joinTable,
-      IndexName: "joinTable_joinDateTime",
-      KeyConditionExpression: "serverId = :serverId AND joinDateTime < :datetime",
-      ExpressionAttributeValues: {
-        ":serverId": guildId,
-        ":datetime": timeHorizon
-      } 
-    };
 
     let query = "SELECT * FROM joinTable WHERE serverId = ? AND joinDateTime < " + timeHorizon;
-    client.db.each(query, [guildId], function(err, member) {
+    client.db.each(query, [guildId], async function(err, member) {
       if (err) {
         return console.error(err.message);
       }
