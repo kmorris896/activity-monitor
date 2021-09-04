@@ -23,7 +23,7 @@ module.exports = {
       }
     }
   },
-  initializeConfig(client, logger) {
+  async initializeConfig(client, logger) {
     try {
       const configFile = fs.readFileSync('./config/config.json', 'utf8');
       configJson = JSON.parse(configFile);
