@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-containers: [ubuntu, alpine]
+        node-containers: [alpine]
     
     steps:
       - name: Check out the repo
