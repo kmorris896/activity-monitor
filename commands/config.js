@@ -92,6 +92,34 @@ module.exports = {
           msg.client.logger.error("config kickmessage - unable to store config item into database: " + JSON.stringify(err, null, 2));
           return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
         }          
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "timehorizon")) {
+        msg.client.logger.debug("config timehorizon");
+        if (parseTime(args[1]) > 0) {
+          try {
+            msg.client.botConfig[msg.guild.id].timeHorizon = args[1];
+            await saveServerConfig(msg.client);
+            return msg.channel.send("Time horizon set to " + args[1] + " = " + parseTime(args[1]) + " milliseconds.");
+          } catch(err) {
+            msg.client.logger.error("config timehorizon - unable to store config item into database: " + JSON.stringify(err, null, 2));
+            return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }          
+        } else {
+          msg.reply("Please provide a valid time.  Only hour, minute, and second durations are allowed.  Example: `1h30m20s`.");
+        }
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "checkinterval")) {
+        msg.client.logger.debug("config checkinterval");
+        if (parseTime(args[1]) > 0) {
+          try {
+            msg.client.botConfig[msg.guild.id].checkInterval = args[1];
+            await saveServerConfig(msg.client);
+            return msg.channel.send("checkInterval set to " + args[1] + " = " + parseTime(args[1]) + " milliseconds.");
+          } catch(err) {
+            msg.client.logger.error("config timehorizon - unable to store config item into database: " + JSON.stringify(err, null, 2));
+            return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }          
+        } else {
+          msg.reply("Please provide a valid time.  Only hour, minute, and second durations are allowed.  Example: `1h30m20s`.");
+        }
       }
     } else {
       msg.reply('You must be an administrator in order configure the bot.');
@@ -116,6 +144,20 @@ module.exports = {
       client.logger.error("Error loading config file: " + err);
     }
   }
+}
+
+function parseTime(timeString) {
+  var milliseconds = 0;
+  const timeStringLC = timeString.toLowerCase();
+  const hours = timeStringLC.match(/^(\d+)\s*h/);
+  const minutes = timeStringLC.match(/^(\d+)\s*m/);
+  const seconds = timeStringLC.match(/^(\d+)\s*s/);
+
+  if (hours) { milliseconds += parseInt(hours[1]) * 3600000; }
+  if (minutes) { milliseconds += parseInt(minutes[1]) * 60000; }
+  if (seconds) { milliseconds += parseInt(seconds[1]) * 1000; }
+
+  return milliseconds;
 }
 
 async function saveServerConfig(client) {
