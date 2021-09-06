@@ -37,32 +37,27 @@ module.exports = {
         userLastMessageDelta
       ];
 
-      msg.client.db.run(`INSERT INTO chatTable (serverId, messageId, channelId, 
-        lastChannelMessageDelta, memberId, messageDateTime, messageLink, messageWordCount, userLastMessageDelta) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, chatItem, (err) => {
-          if (err) {
+      try {
+        const info = msg.client.db.prepare(`INSERT INTO chatTable (serverId, messageId, channelId, 
+          lastChannelMessageDelta, memberId, messageDateTime, messageLink, messageWordCount, userLastMessageDelta) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(chatItem);
+        logger.info('New message added to chatTable');
+      } catch (err) {
             logger.error(err);
-          } else {
-            logger.info('New message added to chatTable');
-          }
-        });
+      }
     });
   }
 }
 
 function getUserLastMessageDelta(msg, logger) {
-  msg.client.db.get(`SELECT messageDateTime FROM chatTable 
-    WHERE serverId = ? AND memberId = ? ORDER BY messageDateTime DESC LIMIT 1;`, [msg.guild.id, msg.author.id], (err, row) => {
-    if (err) {
-      logger.error(err);
-    } else {
-      var userLastMessageDelta = 604800000;
-      if (typeof row !== 'undefined') {
-        userLastMessageDelta = msg.createdTimestamp - row.messageDateTime;
-      }
+  const row = msg.client.db.prepare(`SELECT messageDateTime FROM chatTable 
+    WHERE serverId = ? AND memberId = ? ORDER BY messageDateTime DESC LIMIT 1;`).get(msg.guild.id, msg.author.id);
 
-      logger.debug(`Last message delta for ${msg.author.username} is ${userLastMessageDelta}`);
-      return userLastMessageDelta;
-    }
-  });
+  var userLastMessageDelta = 604800000;
+  if (typeof row !== 'undefined') {
+    userLastMessageDelta = msg.createdTimestamp - row.messageDateTime;
+  }
+
+  logger.debug(`Last message delta for ${msg.author.username} is ${userLastMessageDelta}`);
+  return userLastMessageDelta;
 }

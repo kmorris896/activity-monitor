@@ -32,6 +32,7 @@
     const allRows = await client.db.prepare(query).all(guildId);
     logger.info("checkNewArrivals: Found " + allRows.length + " entries");
     for (let i = 0; i < allRows.length; i++) {
+      const member = allRows[i];
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
       logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
