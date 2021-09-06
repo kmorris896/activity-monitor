@@ -23,9 +23,16 @@
 
   async checkNewArrivals(guildId, client) {
     const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
-    const timeHorizon = Date.now() - oneDay;
+    var delta = oneDay;
+
+    if (client.botConfig[guildId].hasOwnProperty('timeHorizon')) {
+      delta = client.commands.get('config').getMilliseconds(client.botConfig[guildId].timeHorizon);
+    }
+
+    var timeHorizon = Date.now() - delta;
     
     client.logger.info("Looking for entries less than: " + timeHorizon);
+    client.logger.info("Delta: " + delta);
     client.logger.info("On server: " + guildId);
 
     let query = "SELECT * FROM joinTable WHERE serverId = ? AND joinDateTime < " + timeHorizon;
