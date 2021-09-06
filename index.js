@@ -57,7 +57,6 @@ client.on('ready', () => {
   client.commands.get('config').initializeConfig(client);
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
-    logger.debug(JSON.stringify(client.checkNewArrivalInterval));
 
     // Check newArrivals every hour
     const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour

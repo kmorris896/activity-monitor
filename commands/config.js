@@ -143,6 +143,9 @@ module.exports = {
     } catch (err) {
       client.logger.error("Error loading config file: " + err);
     }
+  },
+  getMilliseconds(timestr) {
+    return parseTime(timestr);
   }
 }
 
