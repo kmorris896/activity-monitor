@@ -59,7 +59,7 @@
       }   
       
       if (deleteJoinEntry) {
-        let deleteQuery = "DELETE FROM " + joinTable + " WHERE serverId = ? AND memberId = ?";
+        let deleteQuery = "DELETE FROM joinTable WHERE serverId = ? AND memberId = ?";
         try {
           const info = client.db.prepare(deleteQuery).run(member.serverId, member.memberId);
           logger.debug(`deleteJoinEntry: Row(s) updated: ${this.changes}`);
