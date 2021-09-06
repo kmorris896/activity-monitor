@@ -1,14 +1,6 @@
-// ---------- DynamoDB Configuration
-const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
+// ---------- fs Declarations
+const fs = require("fs");
 
-// ---------- DynamoDB Declarations
-var AWS = require("aws-sdk");
-const awsDynamoDbEndpoint = "https://dynamodb." + process.env.AWS_REGION + ".amazonaws.com";
-console.log("Setting endpoint: " + awsDynamoDbEndpoint);
-
-AWS.config.update({endpoint: awsDynamoDbEndpoint, region: process.env.AWS_REGION});
-AWS.config.apiVersions = { dynamodb: '2012-08-10' };
-var docClient = new AWS.DynamoDB.DocumentClient();
 
 module.exports = {
   name: 'config',
@@ -17,24 +9,11 @@ module.exports = {
     if (args[0] == "hasrole") {
       const hasRole = msg.mentions.roles.first();
 
+      // If there is a role mentioned, store it in the config
       if (typeof hasRole != "undefined") {
-        const configItem = {
-          TableName: "configTable_d8c7c4d5",
-          Item: {
-            "serverId": msg.guild.id,
-            "hasRole": hasRole.id
-          }
-        }
-        
-        docClient.put(configItem, function(err, data) {
-          if (err) {
-            console.error("Unable to PUT item. Error JSON:" + JSON.stringify(err, null, 2));
-          } else {
-            console.debug("putItem succeeded:" + JSON.stringify(data, null, 2));
-            msg.client.botConfig[msg.guild.id].set("hasRole", hasRole.id);
-            return msg.channel.send("Bot will kick users with the role <@&" + hasRole.id + "> within the timeframe.");
-          }
-        });
+        msg.client.botConfig[msg.guild.id].set("hasRole", hasRole.id);
+        msg.channel.send("Bot will kick users with the role <@&" + hasRole.id + "> within the timeframe.");
+        this.saveServerConfig(msg.guild.id, msg.client);
       } else {
         if (msg.client.botConfig[msg.guild.id].has("hasRole")) {
           return msg.channel.send("Bot has been configured to kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("hasRole") + ">");
@@ -44,24 +23,38 @@ module.exports = {
       }
     }
   },
-  getServerConfig(serverId, client, logger, docClient) {
-    const configParams = {
-      TableName: configTable,
-      Key: {
-        "serverId": serverId.toString()
-      }
-    }
-  
-    docClient.get(configParams, function(err, data) {
-      if (err) {
-        logger.error("Unable to read item.  Error JSON: " + JSON.stringify(err, null, 2));
-      } else {
-        if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
-          logger.debug("getServerConfig hasRole = " + data.Item.hasRole);
-          client.botConfig[serverId].set("hasRole", data.Item.hasRole);
+  async initializeConfig(client, logger) {
+    try {
+      const configFile = fs.readFileSync('./config/config.json', 'utf8');
+      configJson = JSON.parse(configFile);
+
+      for (let configServerId in configJson) {
+        if (client.botConfig.hasOwnProperty(configServerId)) {
+          logger.info("Re-loading config for server " + configServerId);
+          client.botConfig[configServerId] = configJson[configServerId];
         } else {
-          logger.debug("getItem returned empty");
-        }  
+          logger.info("Loading config for server " + configServerId);
+          client.botConfig[configServerId] = configJson[configServerId];
+        }
+      }
+    } catch (err) {
+      logger.error("Error loading config file: " + err);
+    }
+  },
+  getServerConfig(serverId, client, logger) {
+      if (configJson.hasOwnProperty(serverId)) {
+        logger.debug("Found config for server " + serverId);
+        client.botConfig[serverId] = configJson[serverId];
+      } else {
+        logger.debug("No config exists for server " + serverId);
+      }
+  },
+  saveServerConfig(client, logger) {
+    fs.writeFile("./config/config.json", JSON.stringify(client.botConfig, null, 2), function(err) {
+      if (err) {
+        logger.error(err);
+      } else {
+        logger.debug("The file was saved!");
       }
     });
   }
