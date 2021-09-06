@@ -7,36 +7,40 @@ module.exports = {
   async execute(msg, args) {  
     if(msg.member.hasPermission('ADMINISTRATOR')) {
 
+      // Create a lowercase version of each config option so we can map to them
+      const configSettingsOptions = ["hasRole", "kickAnnouncementChannel", "kickMessage", "timeHorizon", "checkInterval"];
       let configSettingsObject = {};
-      for (const key in msg.client.botConfig[msg.guild.id].get("config")) {
+      configSettingsOptions.forEach(key => {
         configSettingsObject[key.toLowerCase()] = key;
-      }
-
+      });
+      
       if (args.length === 0) {
+        msg.channel.send(`The current settings are: ${JSON.stringify(msg.client.botConfig[msg.guild.id])}`);
         msg.reply('You must provide a configuration item in order for the command to work.  Please review the documentation for full details.');
       }
+
       if ((args.length == 1) && configSettingsObject.hasOwnProperty(args[0].toLowerCase())) {
         const configSetting = args[0].toLowerCase();
         const key = configSettingsObject[configSetting];
         msg.client.logger.debug("has command: " + configSetting + " which maps to: " + key);
         
         let replyMessage = "";
-        if (msg.client.botConfig[msg.guild.id].get("config").hasOwnProperty(key) && (msg.client.botConfig[msg.guild.id].get("config")[key] !="")) {
+        if (msg.client.botConfig[msg.guild.id].hasOwnProperty(key) && (msg.client.botConfig[msg.guild.id][key] !="")) {
           switch (configSetting) {
             case "hasrole":
-              replyMessage = "Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config")[key] + "> within the time horizon.";
+              replyMessage = "Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id][key] + "> within the time horizon.";
               break;
           
             case "kickannouncementchannel":
-              replyMessage = "Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config")[key] + ">.";
+              replyMessage = "Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id][key] + ">.";
               break;
 
             case "kickmessage":
-              replyMessage = "Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id].get("config")[key];
+              replyMessage = "Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id][key];
               break;
 
             default:
-              replyMessage = key + " has value: `" + msg.client.botConfig[msg.guild.id].get("config")[key] + "`";
+              replyMessage = key + " has value: `" + msg.client.botConfig[msg.guild.id][key] + "`";
               break;
           }
         } else {
@@ -52,9 +56,9 @@ module.exports = {
   
         if (typeof hasRole != "undefined") {
           try {
-            msg.client.botConfig[msg.guild.id].get("config").hasRole = hasRole.id;
-            await saveConfig(msg.guild.id, msg.client);
-            return msg.channel.send("Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].get("config").hasRole + "> within the time horizon.");
+            msg.client.botConfig[msg.guild.id].hasRole = hasRole.id;
+            await saveServerConfig(msg.client);
+            return msg.channel.send("Bot will kick users with the role <@&" + msg.client.botConfig[msg.guild.id].hasRole + "> within the time horizon.");
           } catch(err) {
             msg.client.logger.error("config hasrole - unable to store config item into database: " + JSON.stringify(err, null, 2));
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
@@ -66,9 +70,10 @@ module.exports = {
 
         if (typeof hasChannel != "undefined") {
           try {
-            msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel = hasChannel.id;
-            await saveConfig(msg.guild.id, msg.client);
-            return msg.channel.send("Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].get("config").kickAnnouncementChannel + ">.");
+            msg.client.botConfig[msg.guild.id].kickAnnouncementChannel = hasChannel.id;
+            msg.client.logger.debug("config kickannouncementchannel - hasChannel.id: " + hasChannel.id);
+            await saveServerConfig(msg.client);
+            return msg.channel.send("Bot will announce kicks in <#" + msg.client.botConfig[msg.guild.id].kickAnnouncementChannel + ">.");
           } catch(err) {
             msg.client.logger.error("config kickAnnouncementChannel - unable to store config item into database: " + JSON.stringify(err, null, 2));
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
@@ -80,9 +85,9 @@ module.exports = {
         const message = msg.content.substring(PREFIX.length)
 
         try {
-          msg.client.botConfig[msg.guild.id].get("config").kickMessage = message;
-          await saveConfig(msg.guild.id, msg.client);
-          return msg.channel.send("Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id].get("config").kickMessage);
+          msg.client.botConfig[msg.guild.id].kickMessage = message;
+          await saveServerConfig(msg.client);
+          return msg.channel.send("Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id].kickMessage);
         } catch(err) {
           msg.client.logger.error("config kickmessage - unable to store config item into database: " + JSON.stringify(err, null, 2));
           return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
@@ -92,80 +97,34 @@ module.exports = {
       msg.reply('You must be an administrator in order configure the bot.');
     }
   },
-  async initializeConfig(client, logger) {
+  async initializeConfig(client) {
     try {
       const configFile = fs.readFileSync('./config/config.json', 'utf8');
       configJson = JSON.parse(configFile);
 
       for (let configServerId in configJson) {
         if (client.botConfig.hasOwnProperty(configServerId)) {
-          logger.info("Re-loading config for server " + configServerId);
+          client.logger.info("Re-loading config for server " + configServerId);
           client.botConfig[configServerId] = configJson[configServerId];
         } else {
-          logger.info("Loading config for server " + configServerId);
+          client.logger.info("Loading config for server " + configServerId);
           client.botConfig[configServerId] = configJson[configServerId];
         }
+        client.logger.debug("config loaded: " + JSON.stringify(client.botConfig[configServerId]));
       }
     } catch (err) {
-      logger.error("Error loading config file: " + err);
+      client.logger.error("Error loading config file: " + err);
     }
-  },
-  getServerConfig(serverId, client, logger) {
-      if (configJson.hasOwnProperty(serverId)) {
-        logger.debug("Found config for server " + serverId);
-        client.botConfig[serverId] = configJson[serverId];
-      } else {
-        logger.debug("No config exists for server " + serverId);
-      }
-  },
-  saveServerConfig(client, logger) {
-    fs.writeFile("./config/config.json", JSON.stringify(client.botConfig, null, 2), function(err) {
-      if (err) {
-        logger.error(err);
-      } else {
-        logger.debug("The file was saved!");
-      }
-    });
   }
 }
 
-async function convertToConfigObject(serverId, hasRole_IN, logger) {
-  const configObject = {
-    "hasRole": hasRole_IN,
-    "checkInterval": "1h",
-    "timeHorizon": "24h",
-    "kickMessage": "",
-    "kickAnnouncementChannel": ""
-  };
-
-  client.botConfig[serverId].set("config", configObject);
-
-  try{
-    await saveConfig(serverId, client);
-  } catch(err) {
-    logger.error("Unable able to save config after converting hasRole to Config Object.");
-    logger.error(JSON.stringify(err, null, 2));
-  }
-
-  return configMap; 
-}
-
-async function saveConfig(serverId, client) {
-  client.logger.debug("Saving Config for " + serverId)
-  const configItem = {
-    TableName: configTable,
-    Item: {
-      "serverId": serverId,
-      "config": client.botConfig[serverId].get("config")
+async function saveServerConfig(client) {
+  client.logger.debug("About to save the following config: " + typeof client.botConfig);
+  fs.writeFile("./config/config.json", JSON.stringify(client.botConfig, null, 2), function(err) {
+    if (err) {
+      client.logger.error(err);
+    } else {
+      client.logger.debug("The file was saved!");
     }
-  }
-  
-  client.logger.debug(JSON.stringify(configItem));
-  try {
-    const results = await client.dynamoClient.put(configItem).promise();
-    return results;
-  } catch (err) {
-    client.logger.error("config.js - saveConfig - Error saving config: " + JSON.stringify(err, null, 2));
-  }
-  
+  });
 }

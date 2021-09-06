@@ -17,7 +17,8 @@ const { Client, Intents, Discord } = require("discord.js");
 const DiscordCollection = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 client.commands = new DiscordCollection.Collection();
-client.botConfig = new DiscordCollection.Collection();
+client.botConfig = {};    // Holds the bot configuration
+client.checkNewArrivalInterval = {};  // Holds the interval for checking for new arrivals
 client.logger = logger;
 
 // ---------- sqlite Declarations
@@ -53,15 +54,15 @@ client.on('ready', () => {
   PREFIX = "<@!" + client.user.id + ">";
 
   // ---------- Load Bot Config
-  client.commands.get('config').initializeConfig(client, logger);
+  client.commands.get('config').initializeConfig(client);
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
-    client.botConfig[server.id] = new DiscordCollection.Collection();
+    logger.debug(JSON.stringify(client.checkNewArrivalInterval));
 
     // Check newArrivals every hour
     const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
-    client.botConfig[server.id].newArrivalInterval = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, client, logger);
-    client.commands.get('welcome_activity').checkNewArrivals(server.id, client, logger);
+    client.checkNewArrivalInterval[server.id.toString()] = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, client);
+    client.commands.get('welcome_activity').checkNewArrivals(server.id, client);
   });
   logger.info("Ready.");
 });
@@ -76,7 +77,10 @@ client.on('message', message => {
       client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger);
 
     // If the command doesn't exist, silently return
-    if (!client.commands.has(command)) return;
+    if (!client.commands.has(command)) {
+      client.logger.debug("Command does not exist."); 
+      return;
+    }
 
     try {
       client.commands.get(command).execute(message, args);
