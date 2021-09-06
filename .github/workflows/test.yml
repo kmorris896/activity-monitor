@@ -21,9 +21,6 @@ jobs:
     if: "!startsWith(github.ref, 'refs/tags/v')"
     # Don't create a tag...on a tag.
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-containers: [alpine]
     
     steps:
       - name: Check out the repo
