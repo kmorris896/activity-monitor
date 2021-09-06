@@ -12,14 +12,12 @@ const logger = winston.createLogger({
   ]
 });
 
-
 // ---------- Discord.js Declarations
 const { Client, Intents, Discord } = require("discord.js");
 const DiscordCollection = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
 client.commands = new DiscordCollection.Collection();
 client.botConfig = new DiscordCollection.Collection();
-client.dynamoClient = new AWS.DynamoDB.DocumentClient();
 client.logger = logger;
 
 // ---------- sqlite Declarations
