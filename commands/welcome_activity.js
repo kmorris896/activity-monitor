@@ -21,26 +21,26 @@
     }
   },
 
-  async checkNewArrivals(guildId, client, logger) {
+  async checkNewArrivals(guildId, client) {
     const oneDay = 1000 * 60 * 60 * 24; // 1 second * 60 = 1 minute * 60 = 1 hour * 24 = 1 day
     const timeHorizon = Date.now() - oneDay;
     
-    logger.info("Looking for entries less than: " + timeHorizon);
-    logger.info("On server: " + guildId);
+    client.logger.info("Looking for entries less than: " + timeHorizon);
+    client.logger.info("On server: " + guildId);
 
     let query = "SELECT * FROM joinTable WHERE serverId = ? AND joinDateTime < " + timeHorizon;
     const allRows = await client.db.prepare(query).all(guildId);
-    logger.info("checkNewArrivals: Found " + allRows.length + " entries");
+    client.logger.info("checkNewArrivals: Found " + allRows.length + " entries");
     for (let i = 0; i < allRows.length; i++) {
       const member = allRows[i];
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
-      logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
+      client.logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
       const guildObject = client.guilds.cache.get(member.serverId);
       if (guildObject.member(member.memberId)) {
         if (client.botConfig[member.serverId].has("hasRole") &&
           (guildObject.member(member.memberId).roles.cache.some(role => role.id === client.botConfig[member.serverId].get("hasRole")))) {
-            logger.info("User still exists on server and has the role and has been on the server for the allotted time.");
+            client.logger.info("User still exists on server and has the role and has been on the server for the allotted time.");
             
             const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
             
@@ -50,11 +50,11 @@
               deleteJoinEntry = kickStatus.deleted;
             } 
         } else {
-          logger.info("User exists but doesn't have the role anymore.  Nothing left to do except delete the entry.");
+          client.logger.info("User exists but doesn't have the role anymore.  Nothing left to do except delete the entry.");
           deleteJoinEntry = true;
         }
       } else {
-        logger.info("User is no longer on the server.");
+        client.logger.info("User is no longer on the server.");
         deleteJoinEntry = true;
       }   
       
@@ -62,12 +62,12 @@
         let deleteQuery = "DELETE FROM joinTable WHERE serverId = ? AND memberId = ?";
         try {
           const info = client.db.prepare(deleteQuery).run(member.serverId, member.memberId);
-          logger.debug(`deleteJoinEntry: Row(s) updated: ${this.changes}`);
+          client.logger.debug(`deleteJoinEntry: Row(s) updated: ${this.changes}`);
         } catch (err) {
           return logger.error(err.message);
         }
       } else {
-        logger.info("User could not be deleted.");
+        client.logger.info("User could not be deleted.");
       }
     }  
   }
