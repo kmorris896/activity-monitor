@@ -5,9 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "aws-sdk": "^2.884.0",
+    "better-sqlite3": "^7.4.3",
     "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
-    "sqlite3": "^5.0.2",
     "winston": "^3.3.3"
   },
   "devDependencies": {},

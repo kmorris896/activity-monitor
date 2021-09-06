@@ -13,12 +13,12 @@
     //              "', '" + memberObject.displayName + "', '" + memberObject.joinedTimestamp + "'";
     let query = "INSERT INTO joinTable (serverId, memberId, joinDateTime) VALUES (?, ?, ?)";
     
-    memberObject.client.db.run(query, [memberObject.guild.id, memberId, memberObject.joinedTimestamp], function(err) {
-      if (err) {
-        return console.error(err.message);
-      }
-      console.log(`Row(s) updated: ${this.changes}`);
-    });
+    try {
+      const info = memberObject.client.db.prepare(query).run(memberObject.guild.id, memberId, memberObject.joinedTimestamp);
+      console.debug(`Row(s) inserted into joinTable: ${info.changes}`);
+    } catch (err) {
+      return console.error(err.message);
+    }
   },
 
   async checkNewArrivals(guildId, client, logger) {
@@ -29,11 +29,9 @@
     logger.info("On server: " + guildId);
 
     let query = "SELECT * FROM joinTable WHERE serverId = ? AND joinDateTime < " + timeHorizon;
-    client.db.each(query, [guildId], async function(err, member) {
-      if (err) {
-        return console.error(err.message);
-      }
-      
+    const allRows = await client.db.prepare(query).all(guildId);
+    logger.info("checkNewArrivals: Found " + allRows.length + " entries");
+    for (let i = 0; i < allRows.length; i++) {
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
       logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
@@ -61,16 +59,15 @@
       
       if (deleteJoinEntry) {
         let deleteQuery = "DELETE FROM " + joinTable + " WHERE serverId = ? AND memberId = ?";
-        client.db.run(deleteQuery, [member.serverId, member.memberId], function(err) {
-          if (err) {
-            return console.error(err.message);
-          }
-          console.log(`Row(s) updated: ${this.changes}`);
-        });
+        try {
+          const info = client.db.prepare(deleteQuery).run(member.serverId, member.memberId);
+          logger.debug(`deleteJoinEntry: Row(s) updated: ${this.changes}`);
+        } catch (err) {
+          return logger.error(err.message);
+        }
       } else {
         logger.info("User could not be deleted.");
       }
-    });
-  
+    }  
   }
 };

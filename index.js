@@ -21,13 +21,21 @@ client.commands = new DiscordCollection.Collection();
 client.botConfig = new DiscordCollection.Collection();
 
 // ---------- sqlite Declarations
-const sqlite3 = require("sqlite3").verbose();
-client.db = new sqlite3.Database(process.env.DBFILE, (err) => {
-  if (err) {
-    logger.error("Unable to connect to database: " + err);
+const sqlite3 = require("better-sqlite3");
+
+try {
+  client.db = new sqlite3(process.env.DBFILE, {fileMustExist: true});
+  logger.info("Connected to Database: " + process.env.DBFILE);
+} catch (connectErr) {
+  // This really isn't working yet.  Will fix in a future version
+  try {
+    require('./lib/create-db.js') 
+  } catch (createErr) {
+    logger.error("Error creating database: " + createErr);
   }
-  logger.info('Connected to the database: ' & process.env.DBFILE);
-});
+}
+
+
 
 // ---------- Load Commands
 const botCommands = require('./commands');

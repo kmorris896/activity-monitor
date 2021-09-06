@@ -1,17 +1,11 @@
-CREATE TABLE IF NOT EXISTS configTable (
-    configTableId INTEGER PRIMARY KEY
-  , serverId      TEXT
-  , configSetting TEXT
-  , configValue   TEXT);
-
 CREATE TABLE IF NOT EXISTS joinTable ( 
-    joinTableId   INTEGER PRIMARY KEY
+    joinTableId   INTEGER PRIMARY KEY AUTOINCREMENT
   , serverId      TEXT
   , memberId      TEXT
   , joinDateTime  INTEGER);
 
 CREATE TABLE IF NOT EXISTS chatTable (
-    chatTableId       INTEGER PRIMARY KEY
+    chatTableId       INTEGER PRIMARY KEY AUTOINCREMENT
   , serverId          TEXT
   , messageId         TEXT
   , channelId         TEXT
