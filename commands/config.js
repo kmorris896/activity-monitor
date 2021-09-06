@@ -1,5 +1,5 @@
-// ---------- DynamoDB Configuration
-const configTable = "configTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
+// ---------- fs Declarations
+const fs = require("fs");
 
 module.exports = {
   name: 'config',
@@ -92,32 +92,40 @@ module.exports = {
       msg.reply('You must be an administrator in order configure the bot.');
     }
   },
-
-  async getServerConfig(serverId, client) {
-    const configParams = {
-      TableName: configTable,
-      Key: {
-        "serverId": serverId.toString()
-      }
-    }
-  
+  async initializeConfig(client, logger) {
     try {
-      const data = await client.dynamoClient.get(configParams).promise();
+      const configFile = fs.readFileSync('./config/config.json', 'utf8');
+      configJson = JSON.parse(configFile);
 
-      if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("hasRole")) {
-        client.logger.debug("DEPRECATION ALERT: getServerConfig hasRole detected.  Converting to config object");
-        client.botConfig[serverId].set("config", convertToConfigObject(serverId, data.Item.hasRole, client));
-      } else if (data.hasOwnProperty("Item") && data.Item.hasOwnProperty("config")) {
-        client.logger.debug("Setting server Config to DynamoDB stored values.");
-        client.botConfig[serverId].set("config", data.Item.config);
-        client.logger.debug("config: " + JSON.stringify(client.botConfig[serverId].get("config")));
+      for (let configServerId in configJson) {
+        if (client.botConfig.hasOwnProperty(configServerId)) {
+          logger.info("Re-loading config for server " + configServerId);
+          client.botConfig[configServerId] = configJson[configServerId];
+        } else {
+          logger.info("Loading config for server " + configServerId);
+          client.botConfig[configServerId] = configJson[configServerId];
+        }
+      }
+    } catch (err) {
+      logger.error("Error loading config file: " + err);
+    }
+  },
+  getServerConfig(serverId, client, logger) {
+      if (configJson.hasOwnProperty(serverId)) {
+        logger.debug("Found config for server " + serverId);
+        client.botConfig[serverId] = configJson[serverId];
       } else {
-        client.logger.debug("getItem returned empty");
-      }    
-    } catch(err) {
-      client.logger.error("getServerConfig - Unable to read item.  Error JSON: " + JSON.stringify(err, null, 2));
-    };
-
+        logger.debug("No config exists for server " + serverId);
+      }
+  },
+  saveServerConfig(client, logger) {
+    fs.writeFile("./config/config.json", JSON.stringify(client.botConfig, null, 2), function(err) {
+      if (err) {
+        logger.error(err);
+      } else {
+        logger.debug("The file was saved!");
+      }
+    });
   }
 }
 
