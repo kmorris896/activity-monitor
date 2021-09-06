@@ -58,8 +58,13 @@ client.on('ready', () => {
   client.guilds.cache.forEach(function (server) {
     logger.info('Guild ID: ' + server.id);
 
-    // Check newArrivals every hour
-    const interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour
+    // Check newArrivals 
+    var interval = 1000 * 60 * 60; // 1 second * 60 = 1 minute * 60 = 1 hour -- Default
+    if (client.botConfig[server.id].hasOwnProperty('checkInterval')) {
+      interval = client.commands.get('config').getMilliseconds(client.botConfig[server.id].checkInterval);
+    } 
+
+    client.logger.debug("Creating interval for " + interval + " milliseconds");
     client.checkNewArrivalInterval[server.id.toString()] = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, client);
     client.commands.get('welcome_activity').checkNewArrivals(server.id, client);
   });
