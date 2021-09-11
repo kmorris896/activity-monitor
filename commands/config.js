@@ -112,9 +112,13 @@ module.exports = {
           try {
             msg.client.botConfig[msg.guild.id].checkInterval = args[1];
             await saveServerConfig(msg.client);
+            if (msg.client.checkNewArrivalInterval.hasOwnProperty(msg.guild.id)) {
+              clearInterval(msg.client.checkNewArrivalInterval[msg.guild.id]);
+            }
+            msg.client.checkNewArrivalInterval[msg.guild.id] = setInterval(msg.client.commands.get('welcome_activity').checkNewArrivals, parseTime(args[1]), msg.guild.id, msg.client);
             return msg.channel.send("checkInterval set to " + args[1] + " = " + parseTime(args[1]) + " milliseconds.");
           } catch(err) {
-            msg.client.logger.error("config timehorizon - unable to store config item into database: " + JSON.stringify(err, null, 2));
+            msg.client.logger.error("config checkinterval - unable to store config item into database: " + JSON.stringify(err, null, 2));
             return msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
           }          
         } else {
