@@ -2,22 +2,22 @@
   name: 'welcome_activity',
   description: 'Welcome Activity Monitor',
 
-  addMember(memberObject, logger) {
+  addMember(memberObject) {
+    const logger = memberObject.client.logger;
     // logger.info(JSON.stringify(memberObject));
     logger.info("SERVER JOIN ON " + memberObject.guild.name + " (" + memberObject.guild.id + ")");
     logger.info("memberObject Name: " + memberObject.displayName);
     logger.info("memberObject ID: " + memberObject.id);
     logger.info("Joined at: " + memberObject.joinedTimestamp);
 
-    // let values =    "'" + memberObject.guild.id + "', '" + memberObject.id + 
-    //              "', '" + memberObject.displayName + "', '" + memberObject.joinedTimestamp + "'";
+    const values = [memberObject.guild.id, memberObject.id, memberObject.joinedTimestamp]
     let query = "INSERT INTO joinTable (serverId, memberId, joinDateTime) VALUES (?, ?, ?)";
     
     try {
-      const info = memberObject.client.db.prepare(query).run(memberObject.guild.id, memberId, memberObject.joinedTimestamp);
-      console.debug(`Row(s) inserted into joinTable: ${info.changes}`);
+      const info = memberObject.client.db.prepare(query).run(values);
+      logger.debug(`Row(s) inserted into joinTable: ${info.changes}`);
     } catch (err) {
-      return console.error(err.message);
+      return logger.error(err.message);
     }
   },
 
