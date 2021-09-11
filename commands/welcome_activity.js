@@ -42,18 +42,18 @@
       const member = allRows[i];
       let deleteJoinEntry = false;
       const dateObject = new Date(member.joinDateTime);
-      client.logger.debug("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
+      client.logger.info("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
       const guildObject = client.guilds.cache.get(member.serverId);
       if (guildObject.member(member.memberId)) {
         if (client.botConfig[member.serverId].has("hasRole") &&
           (guildObject.member(member.memberId).roles.cache.some(role => role.id === client.botConfig[member.serverId].get("hasRole")))) {
-            client.logger.info("User still exists on server and has the role and has been on the server for the allotted time.");
+            client.logger.debug("User still exists on server and has the role and has been on the server for the allotted time.");
             
-            const kickMessage = "Thank you very much for checking us out.  I know life can get busy but since you haven't posted an acceptable intro within 24 hours, I'm giving you a polite nudge.\n\nYou are welcome back anytime by accepting this invite: https://discord.gg/2dXsVsMgUQ";
+            const kickMessage = client.botConfig[member.serverId].kickMessage;
             
             const dmStatus = await client.users.cache.get(member.memberId).send(kickMessage);
             if (typeof dmStatus.id == "string") {
-              const kickStatus = await guildObject.member(member.memberId).kick("Kicked for failing to create an intro within 24 hours.");
+              const kickStatus = await guildObject.member(member.memberId).kick();
               deleteJoinEntry = kickStatus.deleted;
             } 
         } else {
