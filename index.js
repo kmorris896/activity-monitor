@@ -68,6 +68,8 @@ client.on('ready', () => {
     client.checkNewArrivalInterval[server.id.toString()] = setInterval(client.commands.get('welcome_activity').checkNewArrivals, interval, server.id, client);
     client.commands.get('welcome_activity').checkNewArrivals(server.id, client);
   });
+
+  client.user.setActivity('server activity 👀.', { type: 'WATCHING' });
   logger.info("Ready.");
 });
 
