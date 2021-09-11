@@ -1,4 +1,5 @@
 // ---------- fs Declarations
+const { MessageFlags } = require("discord.js");
 const fs = require("fs");
 
 module.exports = {
@@ -8,7 +9,7 @@ module.exports = {
     if(msg.member.hasPermission('ADMINISTRATOR')) {
 
       // Create a lowercase version of each config option so we can map to them
-      const configSettingsOptions = ["hasRole", "kickAnnouncementChannel", "kickMessage", "timeHorizon", "checkInterval"];
+      const configSettingsOptions = ["hasRole", "kickAnnouncementChannel", "kickMessage", "timeHorizon", "checkInterval", "watchChannel", 'unwatchChannel'];
       let configSettingsObject = {};
       configSettingsOptions.forEach(key => {
         configSettingsObject[key.toLowerCase()] = key;
@@ -37,6 +38,11 @@ module.exports = {
 
             case "kickmessage":
               replyMessage = "Bot will send the following kick message:\n> " + msg.client.botConfig[msg.guild.id][key];
+              break;
+
+            case "unwatchchannel":
+            case "watchchannel":
+              replyMessage = "Bot is watching the following channels for activity: " + msg.client.botConfig[msg.guild.id][key].join("\n");
               break;
 
             default:
@@ -123,6 +129,50 @@ module.exports = {
           }          
         } else {
           msg.reply("Please provide a valid time.  Only hour, minute, and second durations are allowed.  Example: `1h30m20s`.");
+        }
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "watchchannel")) {
+        msg.client.logger.debug("config watchchannel");
+        const hasChannel = msg.mentions.channels.first();
+        
+        if (typeof hasChannel != "undefined") {
+          try {
+            if (typeof msg.client.botConfig[msg.guild.id].watchChannel == "undefined") {
+              msg.client.botConfig[msg.guild.id].watchChannel = [];
+            }
+
+            if (msg.client.botConfig[msg.guild.id].watchChannel.indexOf(hasChannel) == -1) {
+              msg.client.botConfig[msg.guild.id].watchChannel.push(hasChannel);
+              await saveServerConfig(msg.client);
+              return msg.channel.send("Bot will begin watching <#" + hasChannel + ">.");
+            } else {
+              return msg.channel.send("Bot is already watching <#" + hasChannel + ">.");
+            }
+          } catch (error) {
+            msg.client.logger.error("config watchchannel - unable to store config item into database: " + JSON.stringify(error, null, 2));
+            msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }
+        }
+      } else if ((args.length > 1) && (args[0].toLowerCase() == "unwatchchannel")) {
+        msg.client.logger.debug("config unwatchchannel");
+        const hasChannel = msg.mentions.channels.first();
+        
+        if (typeof hasChannel != "undefined") {
+          try {
+            if (typeof msg.client.botConfig[msg.guild.id].watchChannel == "undefined") {
+              msg.channel.send("Bot is not watching any channels.");
+            } else {
+              if (msg.client.botConfig[msg.guild.id].watchChannel.indexOf(hasChannel) > -1) {
+                msg.client.botConfig[msg.guild.id].watchChannel.splice(msg.client.botConfig[msg.guild.id].watchChannel.indexOf(hasChannel), 1);
+                await saveServerConfig(msg.client);
+                msg.channel.send("Bot will no longer watch <#" + hasChannel + ">.");
+              } else {
+                msg.channel.send("Bot is not watching <#" + hasChannel + ">.");
+              }
+            }
+          } catch (error) {
+            msg.client.logger.error("config watchchannel - unable to store config item into database: " + JSON.stringify(error, null, 2));
+            msg.channel.send("Bot was not able to store the config item into the database.  Please contact the bot developer.");
+          }
         }
       }
     } else {
