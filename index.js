@@ -114,12 +114,14 @@ client.on('message', message => {
       } catch (error) {
         logger.error(`Failed to execute command ${command}.  ${error}`);
       }
-
-    } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
-            ||(message.channel.id == "704057794571272366")) {
-      client.commands.get('channel_activity').execute(message, logger, docClient);
+    } else if ((message.author.id != client.user.id) &&
+                 (message.author.bot == false) &&
+                 client.botConfig.hasOwnProperty(message.guild.id) && 
+                 client.botConfig[message.guild.id].hasOwnProperty("watchChannel") && 
+                 (client.botConfig[message.guild.id].watchChannel.indexOf(message.channel.id) >= 0)) {
+      client.commands.get('channel_activity').execute(message, logger);
     } else {
-      logger.debug(message.content);
+      logger.debug("Ignoring message: " + message.content);
     }
   }
 });

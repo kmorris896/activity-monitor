@@ -3,7 +3,8 @@ const chatTable = "chatTable_" + process.env.DYNAMODB_TABLE_IDENTIFIER;
 module.exports = {
   name: 'channel_activity',
   description: 'Watch channel activity',
-  execute(msg, logger) {
+  execute(msg) {
+    const logger = msg.client.logger;
     const messageWordCount = msg.content.trim().split(/\s+/).length;
 
     if (msg.content.startsWith('!') || msg.content.startsWith('.') || msg.author.bot === true) 

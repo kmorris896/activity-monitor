@@ -140,8 +140,8 @@ module.exports = {
               msg.client.botConfig[msg.guild.id].watchChannel = [];
             }
 
-            if (msg.client.botConfig[msg.guild.id].watchChannel.indexOf(hasChannel) == -1) {
-              msg.client.botConfig[msg.guild.id].watchChannel.push(hasChannel);
+            if (msg.client.botConfig[msg.guild.id].watchChannel.indexOf(hasChannel.id) == -1) {
+              msg.client.botConfig[msg.guild.id].watchChannel.push(hasChannel.id);
               await saveServerConfig(msg.client);
               return msg.channel.send("Bot will begin watching <#" + hasChannel + ">.");
             } else {
