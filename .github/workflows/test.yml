@@ -9,6 +9,7 @@ on:
     paths-ignore:
       - 'README.md'
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - main
 
@@ -35,3 +36,12 @@ jobs:
           VERBOSE: true
           DRY_RUN: true
 
+      - name: Create Tag
+        uses: anothrNick/github-tag-action@1.34.0
+        if: "github.event.labels.name == 'ready-for-release'"
+        env:
+          GITHUB_TOKEN: ${{ secrets.TAGACTION_TOKEN }}
+          WITH_V: true
+          RELEASE_BRANCHES: main
+          VERBOSE: true
+          DRY_RUN: true
