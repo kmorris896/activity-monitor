@@ -13,9 +13,9 @@ module.exports = {
     msg.channel.messages.fetch({ limit: 5 , before: msg.id }).then(function (messages) {
       const nonbot_messages = messages.filter(message => msg.author.bot === false);
       return nonbot_messages.first().createdTimestamp;
-    }).then(function (lastChannelMessageDatetime) {
+    }).then(async function (lastChannelMessageDatetime) {
       const lastChannelMessageDelta = msg.createdTimestamp - lastChannelMessageDatetime;
-      const userLastMessageDelta = getUserLastMessageDelta(msg);
+      const userLastMessageDelta = await getUserLastMessageDelta(msg);
 
       logger.debug(`serverId: ${msg.guild.id}`);
       logger.debug(`memberId: ${msg.author.id}`);
@@ -44,21 +44,25 @@ module.exports = {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(chatItem);
         logger.info('New message added to chatTable');
       } catch (err) {
-            logger.error(err);
+        logger.error('channelActivity.execute: ' + err.message + '\n' + err.stack);
       }
     });
   },
   async getUserActivity(msg) {
+    msg.client.logger.info(`channel_activity.getUserActivity: ` + msg.author.username);
     let userActive = false;
 
     // Only check user activity if the user is NOT currently active 
     // and doesn't have an ignorable role
+    msg.client.logger.debug('channel_activity.getUserActivity: Has active role test: ' + msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active));
+    msg.client.logger.debug('channel_activity.getUserActivity: Has ignorable role test: ' + msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)));
     if ((msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active) === false) &&
         (msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)) === false)) {
+      msg.client.logger.info(`channel_activity.getUserActivity: checking activity...`);
       userActive = await getUserHistory(msg);
       
       if (userActive === true) {
-        msg.client.logger.info(`getUserHistory: adding active role for ${msg.author.id}`)
+        msg.client.logger.info(`channel_activity.getUserActivity: adding active role for ${msg.author.username}`)
         msg.member.roles.add(msg.client.botConfig[msg.guild.id].chatActivity.roles.active);
         if (msg.client.botConfig[msg.guild.id].chatActivity.roles.hasOwnProperty("inactive") 
             && msg.client.botConfig[msg.guild.id].chatActivity.roles.inactive.length > 0) {
