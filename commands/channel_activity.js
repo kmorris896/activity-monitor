@@ -91,16 +91,30 @@ async function getUserLastMessageDelta(msg) {
 }
 
 async function getUserHistory(msg) {
-  let userActive = false;
   const logger = msg.client.logger;
+  let userActive = false;
+  let columns = "";
+  let where = "";
+
+
+  if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery")) {
+    const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
+
+    if (queryObject.hasOwnProperty("columns") && (queryObject.columns.length > 0))
+      columns = queryObject.columns.join(', ');
+
+    if (queryObject.hasOwnProperty("where") && (queryObject.where.length > 0))
+      where = queryObject.where.join(' AND ');
+  }
+  
+  // prepare escapes strings for us to make it safe to run.
   const row = msg.client.db.prepare(`
-    SELECT COUNT(messageId) AS MESSAGES
-        , AVG(messageWordCount) AS AVG_WORDS
+    SELECT ${columns}
     FROM chatTable
     WHERE 
           serverId = ? 
       AND memberId = ?
-      AND DATETIME(messageDateTime/1000, 'unixepoch') >= DATE('now', '-30 minutes');`).get(msg.guild.id, msg.author.id);
+      AND ${where};`).get(msg.guild.id, msg.author.id);
 
   if (typeof row === 'undefined') {
     logger.error("getUserHistory: Database return undefined.");
