@@ -45,8 +45,8 @@
       client.logger.info("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
       const guildObject = client.guilds.cache.get(member.serverId);
 
-      if (guildObject.member(member.memberId)) {
-        const memberObject = guildObject.member(member.memberId);
+      if (guildObject.members.cache.get(member.memberId)) {
+        const memberObject = guildObject.members.cache.get(member.memberId);
         if (client.botConfig[member.serverId].hasOwnProperty("hasRole") &&
            (memberObject.roles.cache.some(role => role.id === client.botConfig[member.serverId].hasRole))) {
               client.logger.debug("User still exists on server and has the role and has been on the server for the allotted time.");
