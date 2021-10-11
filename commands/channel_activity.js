@@ -92,9 +92,10 @@ async function getUserLastMessageDelta(msg) {
 
 async function getUserHistory(msg) {
   const logger = msg.client.logger;
+  const math = require('mathjs');
   let userActive = false;
   let columns = "";
-  let where = "";
+  let where = "1 = 1";
 
 
   if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery")) {
@@ -119,12 +120,30 @@ async function getUserHistory(msg) {
   if (typeof row === 'undefined') {
     logger.error("getUserHistory: Database return undefined.");
   } else {
-    logger.debug(`getUserHistory: ${row.MESSAGES} messages with an average of ${row.AVG_WORDS} in the last 30 minutes.`);
-    if ((row.MESSAGES >= 5) && (row.AVG_WORDS >= 5)) {
-      logger.debug(`getUserHistory: returning true`);
-      userActive = true;
+    logger.debug(`getUserHistory: Data returned.`);
+
+    if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery") 
+    &&  msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.hasOwnProperty("attributes")
+    &&  (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.attributes.length > 0)) {
+      const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
+      const permittedOperators = ['==', '>', '<', '>=', '<='];
+
+      let attributeResults = [];
+      queryObject.attributes.forEach(attribute => {
+        if (permittedOperators.includes(attribute.operator) && row.hasOwnProperty(attribute.column)) {
+          const evalString = `${row[attribute.column]} ${attribute.operator} ${attribute.value}`;
+          attributeResults.push(math.evaluate(evalString));
+        }  
+      });
+
+      logger.debug(`getUserHistory: attributeResults: ${attributeResults}`);
+      if (attributeResults.every(result => result === true)) {
+        logger.debug(`getUserHistory: attributeResults returning true`);
+        userActive = true;
+      }
     }
   }
 
   return userActive;
 }
+
