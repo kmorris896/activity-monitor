@@ -119,7 +119,8 @@ client.on('message', message => {
                  client.botConfig.hasOwnProperty(message.guild.id) && 
                  client.botConfig[message.guild.id].hasOwnProperty("watchChannel") && 
                  (client.botConfig[message.guild.id].watchChannel.indexOf(message.channel.id) >= 0)) {
-      client.commands.get('channel_activity').execute(message, logger);
+      client.commands.get('channel_activity').execute(message);
+      client.commands.get('channel_activity').getUserActivity(message);
     } else {
       logger.debug("Ignoring message: " + message.content);
     }
