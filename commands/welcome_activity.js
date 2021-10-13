@@ -58,9 +58,9 @@
                 const kickStatus = await memberObject.kick();
 
                 if ((kickStatus.deleted === true) && (client.botConfig[member.serverId].hasOwnProperty("kickAnnouncementChannel"))) {
-                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Kicked " + memberObject + " per server configuration.");
+                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Kicked <@" + memberObject + "> (" + memberObject + ") per server configuration.");
                 } else if ((kickStatus.deleted === false) && (client.botConfig[member.serverId].hasOwnProperty("kickAnnouncementChannel"))) {
-                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Failed to kick " + memberObject + " per server configuration.");
+                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Failed to kick <@" + memberObject + "> (" + memberObject + ") per server configuration.");
                 }
                 
                 deleteJoinEntry = kickStatus.deleted;
