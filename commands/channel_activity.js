@@ -97,9 +97,10 @@ async function getUserHistory(msg) {
   let columns = "";
   let where = "1 = 1";
 
-
+  logger.info('channel_activity.getUserHistory: checking bot config...');
   if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery")) {
     const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
+    logger.debug('channel_activity.getUserHistory: ' + JSON.stringify(queryObject, null, 2));
 
     if (queryObject.hasOwnProperty("columns") && (queryObject.columns.length > 0))
       columns = queryObject.columns.join(', ');

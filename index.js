@@ -82,17 +82,18 @@ client.on('messageCreate', message => {
       client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client);
     else if (command == "reloadconfig")
       client.commands.get('config').initializeConfig(client);
+    else if (client.commands.has(command)) {
+      try {
+        client.commands.get(command).execute(message, args);
+      } catch (error) {
+        logger.error(`Failed to execute command ${command}.  ${error}`);
+      }
     // If the command doesn't exist, silently return
-    else if (!client.commands.has(command)) {
+    } else if (!client.commands.has(command)) {
       client.logger.debug("Command does not exist."); 
       return;
     }
-
-    try {
-      client.commands.get(command).execute(message, args);
-    } catch (error) {
-      logger.error(`Failed to execute command ${command}.  ${error}`);
-    }
+    
   } else if ((message.author.id != client.user.id) &&
             (message.author.bot == false) &&
             client.botConfig.hasOwnProperty(message.guild.id) && 
