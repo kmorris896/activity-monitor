@@ -93,33 +93,15 @@ client.on('messageCreate', message => {
     } catch (error) {
       logger.error(`Failed to execute command ${command}.  ${error}`);
     }
-  } else {
-    if (message.content.startsWith(PREFIX)) {
-      const args = message.content.substring(PREFIX.length + 1).split(/ +/);
-      const command = args.shift().toLowerCase();
-      logger.info(`Called command: ${command}`);
-
-      if (command == "checknewarrivals") 
-        client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger, docClient);
-
-      // If the command doesn't exist, silently return
-      if (!client.commands.has(command)) return;
-
-      try {
-        client.commands.get(command).execute(message, args);
-      } catch (error) {
-        logger.error(`Failed to execute command ${command}.  ${error}`);
-      }
-    } else if ((message.author.id != client.user.id) &&
-                 (message.author.bot == false) &&
-                 client.botConfig.hasOwnProperty(message.guild.id) && 
-                 client.botConfig[message.guild.id].hasOwnProperty("watchChannel") && 
-                 (client.botConfig[message.guild.id].watchChannel.indexOf(message.channel.id) >= 0)) {
+  } else if ((message.author.id != client.user.id) &&
+            (message.author.bot == false) &&
+            client.botConfig.hasOwnProperty(message.guild.id) && 
+            client.botConfig[message.guild.id].hasOwnProperty("watchChannel") && 
+            (client.botConfig[message.guild.id].watchChannel.indexOf(message.channel.id) >= 0)) {
       client.commands.get('channel_activity').execute(message);
       client.commands.get('channel_activity').getUserActivity(message);
-    } else {
-      logger.debug("Ignoring message: " + message.content);
-    }
+  } else {
+    logger.debug("Ignoring message: " + message.content);
   }
 });
 
