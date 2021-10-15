@@ -13,10 +13,9 @@ const logger = winston.createLogger({
 });
 
 // ---------- Discord.js Declarations
-const { Client, Intents, Discord } = require("discord.js");
-const DiscordCollection = require('discord.js');
+const { Client, Collection, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES] });
-client.commands = new DiscordCollection.Collection();
+client.commands = new Collection();
 client.botConfig = {};    // Holds the bot configuration
 client.checkNewArrivalInterval = {};  // Holds the interval for checking for new arrivals
 client.logger = logger;
@@ -37,10 +36,10 @@ try {
 }
 
 
-
 // ---------- Load Commands
 const botCommands = require('./commands');
 Object.keys(botCommands).map(key => {
+  client.logger.debug("Loading command: " + key);
   client.commands.set(botCommands[key].name, botCommands[key]);
 });
 
@@ -49,7 +48,7 @@ const TOKEN  = process.env.TOKEN;
 var   PREFIX = "";
 client.login(TOKEN);
 
-client.on('ready', () => {
+client.once('ready', () => {
   logger.info(`Logged in as ${client.user.tag}!`);
   PREFIX = "<@!" + client.user.id + ">";
 
@@ -73,17 +72,18 @@ client.on('ready', () => {
   logger.info("Ready.");
 });
 
-client.on('message', message => {
+client.on('messageCreate', message => {
   if (message.content.startsWith(PREFIX)) {
     const args = message.content.substring(PREFIX.length + 1).split(/ +/);
     const command = args.shift().toLowerCase();
     logger.info(`Called command: ${command}`);
 
     if (command == "checknewarrivals") 
-      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger);
-
+      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client);
+    else if (command == "reloadconfig")
+      client.commands.get('config').initializeConfig(client);
     // If the command doesn't exist, silently return
-    if (!client.commands.has(command)) {
+    else if (!client.commands.has(command)) {
       client.logger.debug("Command does not exist."); 
       return;
     }
@@ -93,10 +93,6 @@ client.on('message', message => {
     } catch (error) {
       logger.error(`Failed to execute command ${command}.  ${error}`);
     }
-
-  } else if ((message.channel.id == "752154612798062612") || (message.channel.id == "752462096104423536") 
-           ||(message.channel.id == "740177216134053890")) {
-    client.commands.get('channel_activity').execute(message, logger);
   } else {
     if (message.content.startsWith(PREFIX)) {
       const args = message.content.substring(PREFIX.length + 1).split(/ +/);
@@ -119,7 +115,8 @@ client.on('message', message => {
                  client.botConfig.hasOwnProperty(message.guild.id) && 
                  client.botConfig[message.guild.id].hasOwnProperty("watchChannel") && 
                  (client.botConfig[message.guild.id].watchChannel.indexOf(message.channel.id) >= 0)) {
-      client.commands.get('channel_activity').execute(message, logger);
+      client.commands.get('channel_activity').execute(message);
+      client.commands.get('channel_activity').getUserActivity(message);
     } else {
       logger.debug("Ignoring message: " + message.content);
     }
