@@ -79,10 +79,11 @@ client.on('messageCreate', message => {
     logger.info(`Called command: ${command}`);
 
     if (command == "checknewarrivals") 
-      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client, logger);
-
+      client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client);
+    else if (command == "reloadconfig")
+      client.commands.get('config').initializeConfig(client);
     // If the command doesn't exist, silently return
-    if (!client.commands.has(command)) {
+    else if (!client.commands.has(command)) {
       client.logger.debug("Command does not exist."); 
       return;
     }
