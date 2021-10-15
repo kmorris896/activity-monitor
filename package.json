@@ -1,17 +1,18 @@
 {
   "name": "activity-monitor",
-  "version": "2.4.0",
-  "description": "Description to come",
+  "version": "2.5.0-beta.6",
+  "description": "Discord bot that monitors activity on servers.",
   "main": "index.js",
   "dependencies": {
     "better-sqlite3": "^7.4.3",
-    "discord.js": "^12.5.3",
+    "discord.js": "^13.2.0",
     "dotenv": "^8.2.0",
+    "mathjs": "^9.5.0",
     "winston": "^3.3.3"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "author": "Kelly Morris",
   "license": "SEE LICENSE IN LICENSE",
