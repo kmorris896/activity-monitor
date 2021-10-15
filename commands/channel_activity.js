@@ -134,7 +134,7 @@ async function getUserHistory(msg) {
         if (permittedOperators.includes(attribute.operator) && row.hasOwnProperty(attribute.column)) {
           const columnValue = row[attribute.column] || 0;
           const evalString = `${columnValue} ${attribute.operator} ${attribute.value}`;
-          logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evaluString: ' + evalString);
+          logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evalString: ' + evalString);
           attributeResults.push(math.evaluate(evalString));
         }  
       });
