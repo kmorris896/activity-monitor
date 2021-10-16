@@ -92,7 +92,7 @@ async function getUserLastMessageDelta(msg) {
 
 async function getUserHistory(msg) {
   const logger = msg.client.logger;
-  const math = require('mathjs');
+  const math = require('expr-eval').Parser;
   let userActive = false;
   let columns = "";
   let where = "1 = 1";
@@ -128,6 +128,7 @@ async function getUserHistory(msg) {
     &&  (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.attributes.length > 0)) {
       const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
       const permittedOperators = ['==', '>', '<', '>=', '<='];
+      const parser = new math();
 
       let attributeResults = [];
       queryObject.attributes.forEach(attribute => {
@@ -135,7 +136,7 @@ async function getUserHistory(msg) {
           const columnValue = row[attribute.column] || 0;
           const evalString = `${columnValue} ${attribute.operator} ${attribute.value}`;
           logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evalString: ' + evalString);
-          attributeResults.push(math.evaluate(evalString));
+          attributeResults.push(parser.evaluate(evalString));
         }  
       });
 

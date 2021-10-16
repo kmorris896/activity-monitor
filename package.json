@@ -7,7 +7,7 @@
     "better-sqlite3": "^7.4.3",
     "discord.js": "^13.2.0",
     "dotenv": "^8.2.0",
-    "mathjs": "^9.5.0",
+    "expr-eval": "^2.0.2",
     "winston": "^3.3.3"
   },
   "scripts": {
