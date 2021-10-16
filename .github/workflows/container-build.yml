@@ -6,6 +6,8 @@ on:
   push:
     tags:
       - v*
+  pull_request:
+    types: [ labeled ]
 
 defaults:
   run:
@@ -13,11 +15,11 @@ defaults:
 
 jobs:
   container-build:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || ${{ github.event.label.name == 'release candidate' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14]
+        node-version: [16]
     
     steps:
       - name: Check out the repo
@@ -36,6 +38,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+          # labels: |
+          #   "org.opencontainers.image.ref.name": {{sha}}
 
       - name: Set up docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -57,6 +61,9 @@ jobs:
           file: ./Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Label Digest
+        run: echo ${{ steps.meta.outputs.labels }}
       
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
