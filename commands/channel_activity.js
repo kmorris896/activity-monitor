@@ -92,22 +92,40 @@ async function getUserLastMessageDelta(msg) {
 
 async function getUserHistory(msg) {
   const logger = msg.client.logger;
-  const math = require('expr-eval').Parser;
   let userActive = false;
-  let columns = "";
-  let where = "1 = 1";
 
   logger.info('channel_activity.getUserHistory: checking bot config...');
-  if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery")) {
-    const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
-    logger.debug('channel_activity.getUserHistory: ' + JSON.stringify(queryObject, null, 2));
-
-    if (queryObject.hasOwnProperty("columns") && (queryObject.columns.length > 0))
-      columns = queryObject.columns.join(', ');
-
-    if (queryObject.hasOwnProperty("where") && (queryObject.where.length > 0))
-      where = queryObject.where.join(' AND ');
+  if (msg.client.botConfig[msg.guild.id].hasOwnProperty('chatActivity') &&
+      msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery") && 
+      msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.hasOwnProperty("columns") &&
+      (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.columns.length > 0)) {
+    const attributeResults = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.activeQuery, msg);
+    
+    logger.debug(`channel_activity.getUserHistory: attributeResults: ${attributeResults}`);
+    if (attributeResults.every(result => result === true)) {
+      logger.debug(`getUserHistory: attributeResults returning true`);
+      userActive = true;
+    }
   }
+
+  return userActive;
+}
+
+async function activityQuery(queryObject, msg) {
+  const logger = msg.client.logger;
+  const mathParser = require('expr-eval').Parser;
+
+  let columns = "";
+  let where = "1 = 1";
+  
+  let results = [];
+  logger.debug('channel_activity.activityQuery: ' + JSON.stringify(queryObject, null, 2));
+
+  if (queryObject.hasOwnProperty("columns") && (queryObject.columns.length > 0))
+    columns = queryObject.columns.join(', ');
+
+  if (queryObject.hasOwnProperty("where") && (queryObject.where.length > 0))
+    where = queryObject.where.join(' AND ');
   
   // prepare escapes strings for us to make it safe to run.
   const row = msg.client.db.prepare(`
@@ -119,35 +137,25 @@ async function getUserHistory(msg) {
       AND ${where};`).get(msg.guild.id, msg.author.id);
 
   if (typeof row === 'undefined') {
-    logger.error("getUserHistory: Database return undefined.");
+    logger.error("channel_activity.activityQuery: Database return undefined.");
   } else {
-    logger.debug(`getUserHistory: Data returned.`);
+    logger.debug(`channel_activity.activityQuery: Data returned.`);
 
-    if (msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery") 
-    &&  msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.hasOwnProperty("attributes")
-    &&  (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.attributes.length > 0)) {
-      const queryObject = msg.client.botConfig[msg.guild.id].chatActivity.activeQuery;
+    if (queryObject.hasOwnProperty("attributes") &&
+       (queryObject.attributes.length > 0)) {
       const permittedOperators = ['==', '>', '<', '>=', '<='];
-      const parser = new math();
+      const parser = new mathParser();
 
-      let attributeResults = [];
       queryObject.attributes.forEach(attribute => {
         if (permittedOperators.includes(attribute.operator) && row.hasOwnProperty(attribute.column)) {
           const columnValue = row[attribute.column] || 0;
           const evalString = `${columnValue} ${attribute.operator} ${attribute.value}`;
           logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evalString: ' + evalString);
-          attributeResults.push(parser.evaluate(evalString));
+          results.push(parser.evaluate(evalString));
         }  
       });
-
-      logger.debug(`getUserHistory: attributeResults: ${attributeResults}`);
-      if (attributeResults.every(result => result === true)) {
-        logger.debug(`getUserHistory: attributeResults returning true`);
-        userActive = true;
-      }
     }
   }
 
-  return userActive;
+  return results;
 }
-
