@@ -6,7 +6,7 @@ module.exports = {
   name: 'config',
   description: 'Configure the bot',
   async execute(msg, args) {  
-    if(msg.member.hasPermission('ADMINISTRATOR')) {
+    if(msg.member.permissions.has('ADMINISTRATOR')) {
 
       // Create a lowercase version of each config option so we can map to them
       const configSettingsOptions = ["hasRole", "kickAnnouncementChannel", "kickMessage", "timeHorizon", "checkInterval", "watchChannel", 'unwatchChannel'];
