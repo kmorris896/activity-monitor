@@ -49,6 +49,8 @@ var   PREFIX = "";
 client.login(TOKEN);
 
 client.once('ready', () => {
+  logger.info(`Running version: ${process.env.SEMVER} - sha: ${process.env.GIT_COMMIT}`);
+  logger.info(`npm version: ${process.env.npm_package_version}`);
   logger.info(`Logged in as ${client.user.tag}!`);
   PREFIX = "<@!" + client.user.id + ">";
 

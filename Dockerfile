@@ -1,11 +1,14 @@
 FROM node:16
 ENV NODE_ENV=production
 
-ARG SHA=unspecified
-LABEL SHA=$SHA
+ARG GIT_COMMIT=unspecified
+LABEL GIT_COMMIT=$GIT_COMMIT
+ENV GIT_COMMIT=$GIT_COMMIT
 
 ARG SEMVER=unspecified
-LABEL semver=$SEMVER
+LABEL SEMVER=$SEMVER
+ENV SEMVER=$SEMVER
+
 
 # Create app directory
 WORKDIR /usr/src/app
