@@ -1,12 +1,19 @@
 FROM node:16
 ENV NODE_ENV=production
+
+ARG SHA=unspecified
+LABEL SHA=$SHA
+
+ARG SEMVER=unspecified
+LABEL semver=$SEMVER
+
 # Create app directory
 WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
 
-RUN npm install 
+RUN npm install --production
 
 # If you are building your code for production
 # RUN npm install --production --silent
