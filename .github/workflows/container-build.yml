@@ -62,8 +62,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            GIT_COMMIT: ${{ github.sha }}  
             SEMVER: ${{ steps.create_tag.tag }}
-            GIT_COMMIT: ${{ github.sha }}
       
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
