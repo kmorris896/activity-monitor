@@ -99,7 +99,7 @@ async function getUserHistory(msg) {
       msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery") && 
       msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.hasOwnProperty("columns") &&
       (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.columns.length > 0)) {
-    const attributeResults = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.activeQuery, msg);
+    const attributeResults = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.activeQuery, {"dbClient": msg.client.db, "logger": msg.client.logger, "serverId": msg.guild.id, "memberId": msg.author.id});
     
     logger.debug(`channel_activity.getUserHistory: attributeResults: ${attributeResults}`);
     if (attributeResults.every(result => result === true)) {
@@ -111,8 +111,8 @@ async function getUserHistory(msg) {
   return userActive;
 }
 
-async function activityQuery(queryObject, msg) {
-  const logger = msg.client.logger;
+async function activityQuery(queryObject, data) {
+  const logger = data.logger;
   const mathParser = require('expr-eval').Parser;
 
   let columns = "";
@@ -128,13 +128,13 @@ async function activityQuery(queryObject, msg) {
     where = queryObject.where.join(' AND ');
   
   // prepare escapes strings for us to make it safe to run.
-  const row = msg.client.db.prepare(`
+  const row = data.dbClient.prepare(`
     SELECT ${columns}
     FROM chatTable
     WHERE 
           serverId = ? 
       AND memberId = ?
-      AND ${where};`).get(msg.guild.id, msg.author.id);
+      AND ${where};`).get(data.guildId, data.authorId);
 
   if (typeof row === 'undefined') {
     logger.error("channel_activity.activityQuery: Database return undefined.");
