@@ -61,9 +61,10 @@ module.exports = {
     // doesn't have an ignorable role
     msg.client.logger.debug('channel_activity.getUserActivity: Has active role test: ' + msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active));
     msg.client.logger.debug('channel_activity.getUserActivity: Has ignorable role test: ' + msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)));
+    msg.client.logger.debug('channel_activity.getUserActivity: Is this message considered active: ' + userActive);
 
     if ((msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active) === false) &&
-        (msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)) === false)
+        (msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)) === false) &&
         (userActive === true)) {
 
       msg.client.logger.info(`channel_activity.getUserActivity: adding active role for ${msg.author.username}`)
@@ -122,7 +123,7 @@ async function getUserHistory(msg) {
       msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty("activeQuery") && 
       msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.hasOwnProperty("columns") &&
       (msg.client.botConfig[msg.guild.id].chatActivity.activeQuery.columns.length > 0)) {
-    const attributeResults = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.activeQuery, {"dbClient": msg.client.db, "logger": msg.client.logger, "serverId": msg.guild.id, "memberId": msg.author.id});
+    const attributeResults = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.activeQuery, {"dbClient": msg.client.db, "logger": msg.client.logger, "guildId": msg.guild.id, "memberId": msg.author.id});
     
     logger.debug(`channel_activity.getUserHistory: attributeResults: ${attributeResults}`);
     if (attributeResults.every(result => result === true)) {
@@ -157,7 +158,7 @@ async function activityQuery(queryObject, data) {
     WHERE 
           serverId = ? 
       AND memberId = ?
-      AND ${where};`).get(data.guildId, data.authorId);
+      AND ${where};`).get(data.guildId, data.memberId);
 
   if (typeof row === 'undefined') {
     logger.error("channel_activity.activityQuery: Database return undefined.");
@@ -173,8 +174,9 @@ async function activityQuery(queryObject, data) {
         if (permittedOperators.includes(attribute.operator) && row.hasOwnProperty(attribute.column)) {
           const columnValue = row[attribute.column] || 0;
           const evalString = `${columnValue} ${attribute.operator} ${attribute.value}`;
-          logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evalString: ' + evalString);
           results.push(parser.evaluate(evalString));
+          logger.debug('channel_activity.getUserHistory.queryObject.forEach(): evalString: ' + evalString + ' result: ' + results[results.length - 1]);
+          
         }  
       });
     }
