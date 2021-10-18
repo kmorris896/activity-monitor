@@ -107,9 +107,10 @@ async function makeUserLastMessageActive(msg) {
       AND memberId = ?
       AND messageId = ?;`).run(msg.guild.id, msg.author.id, msg.id);
   
-  if (typeof row !== 'undefined') {
+  if (typeof row !== 'undefined') 
     logger.debug(`channel_activity.makeUserLastMessageActive: Database updated.`);
-  }
+  else 
+    logger.error(`channel_activity.makeUserLastMessageActive: Unable to update database.`);
 
   return row;
 }
