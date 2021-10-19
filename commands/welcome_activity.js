@@ -45,8 +45,8 @@
       client.logger.info("memberId " + member.memberId + " joined " + dateObject.toLocaleString());
       const guildObject = client.guilds.cache.get(member.serverId);
 
-      if (guildObject.member(member.memberId)) {
-        const memberObject = guildObject.member(member.memberId);
+      if (guildObject.members.cache.get(member.memberId)) {
+        const memberObject = guildObject.members.cache.get(member.memberId);
         if (client.botConfig[member.serverId].hasOwnProperty("hasRole") &&
            (memberObject.roles.cache.some(role => role.id === client.botConfig[member.serverId].hasRole))) {
               client.logger.debug("User still exists on server and has the role and has been on the server for the allotted time.");
@@ -58,9 +58,9 @@
                 const kickStatus = await memberObject.kick();
 
                 if ((kickStatus.deleted === true) && (client.botConfig[member.serverId].hasOwnProperty("kickAnnouncementChannel"))) {
-                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Kicked " + memberObject + " per server configuration.");
+                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Kicked <@" + memberObject + "> (" + memberObject + ") per server configuration.");
                 } else if ((kickStatus.deleted === false) && (client.botConfig[member.serverId].hasOwnProperty("kickAnnouncementChannel"))) {
-                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Failed to kick " + memberObject + " per server configuration.");
+                  client.channels.cache.get(client.botConfig[member.serverId].kickAnnouncementChannel).send("Failed to kick <@" + memberObject + "> (" + memberObject + ") per server configuration.");
                 }
                 
                 deleteJoinEntry = kickStatus.deleted;
