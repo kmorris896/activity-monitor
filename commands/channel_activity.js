@@ -16,6 +16,12 @@ module.exports = {
     }).then(async function (lastChannelMessageDatetime) {
       const lastChannelMessageDelta = msg.createdTimestamp - lastChannelMessageDatetime;
       const userLastMessageDelta = await getUserLastMessageDelta(msg);
+      let userActive = await getUserActivity(msg);
+
+      if (userActive === true) 
+        userActive = 1;
+      else
+        userActive = 0;
 
       logger.debug(`serverId: ${msg.guild.id}`);
       logger.debug(`memberId: ${msg.author.id}`);
@@ -25,6 +31,7 @@ module.exports = {
       logger.debug(`messageLink: ${msg.url}`);
       logger.debug(`messageDateTime: ${msg.createdTimestamp}`);
       logger.debug(`lastChannelMessageDelta: ${lastChannelMessageDelta}`);
+      logger.debug(`userActive: ${userActive}`);
 
       let chatItem = [
         msg.guild.id,
@@ -36,7 +43,7 @@ module.exports = {
         msg.url,
         messageWordCount,
         userLastMessageDelta,
-        0
+        userActive
       ];
 
       try {
@@ -47,43 +54,42 @@ module.exports = {
       } catch (err) {
         logger.error('channelActivity.execute: ' + err.message + '\n' + err.stack);
       }
+
     });
   },
-  async getUserActivity(msg) {
-    msg.client.logger.info(`channel_activity.getUserActivity: ` + msg.author.username);
-    let userActive = false;
-
-    
-    msg.client.logger.info(`channel_activity.getUserActivity: checking activity...`);
-    userActive = await getUserHistory(msg);
-
-    // Only change user activity role if they are not already active and 
-    // doesn't have an ignorable role
-    msg.client.logger.debug('channel_activity.getUserActivity: Has active role test: ' + msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active));
-    msg.client.logger.debug('channel_activity.getUserActivity: Has ignorable role test: ' + msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)));
-    msg.client.logger.debug('channel_activity.getUserActivity: Is this message considered active: ' + userActive);
-
-    if ((msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active) === false) &&
-        (msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)) === false) &&
-        (userActive === true)) {
-
-      msg.client.logger.info(`channel_activity.getUserActivity: adding active role for ${msg.author.username}`)
-      msg.member.roles.add(msg.client.botConfig[msg.guild.id].chatActivity.roles.active);
-
-      // Remove inactive role if the user has it
-      if (msg.client.botConfig[msg.guild.id].chatActivity.roles.hasOwnProperty("inactive") 
-          && msg.client.botConfig[msg.guild.id].chatActivity.roles.inactive.length > 0) {
-        msg.client.logger.info(`getUserHistory: removing inactive role from ${msg.author.username}`);
-        msg.member.roles.remove(msg.client.botConfig[msg.guild.id].chatActivity.roles.inactive);
-      }
-
-      // Update the database to reflect the user's activity
-      makeUserLastMessageActive(msg);
-    }
-  
-    return userActive;
-  }
 }
+
+async function getUserActivity(msg) {
+  msg.client.logger.info(`channel_activity.getUserActivity: ` + msg.author.username);
+  let userActive = false;
+
+  msg.client.logger.info(`channel_activity.getUserActivity: checking activity...`);
+  userActive = await getUserHistory(msg);
+
+  // Only change user activity role if they are not already active and 
+  // doesn't have an ignorable role
+  msg.client.logger.debug('channel_activity.getUserActivity: Has active role test: ' + msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active));
+  msg.client.logger.debug('channel_activity.getUserActivity: Has ignorable role test: ' + msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)));
+  msg.client.logger.debug('channel_activity.getUserActivity: Is this message considered active: ' + userActive);
+
+  if ((msg.member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active) === false) &&
+      (msg.member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole.id === memberRole.id)) === false) &&
+      (userActive === true)) {
+
+    msg.client.logger.info(`channel_activity.getUserActivity: adding active role for ${msg.author.username}`)
+    msg.member.roles.add(msg.client.botConfig[msg.guild.id].chatActivity.roles.active);
+
+    // Remove inactive role if the user has it
+    if (msg.client.botConfig[msg.guild.id].chatActivity.roles.hasOwnProperty("inactive") 
+        && msg.client.botConfig[msg.guild.id].chatActivity.roles.inactive.length > 0) {
+      msg.client.logger.info(`getUserHistory: removing inactive role from ${msg.author.username}`);
+      msg.member.roles.remove(msg.client.botConfig[msg.guild.id].chatActivity.roles.inactive);
+    }
+  }
+
+  return userActive;
+}
+
 
 async function getUserLastMessageDelta(msg) {
   const logger = msg.client.logger;
@@ -97,25 +103,6 @@ async function getUserLastMessageDelta(msg) {
 
   logger.debug(`Last message delta for ${msg.author.username} is ${userLastMessageDelta}`);
   return userLastMessageDelta;
-}
-
-async function makeUserLastMessageActive(msg) {
-  const logger = msg.client.logger;
-  const sqlBinds = [msg.guild.id, msg.author.id, msg.id];
-  
-  logger.debug(`channel_activity.makeUserLastMessageActive: sqlBinds: ` + sqlBinds);
-  const row = msg.client.db.prepare(`UPDATE chatTable 
-    SET madeActive = 1
-    WHERE serverId = ? 
-      AND memberId = ?
-      AND messageId = ?;`).run(sqlBinds);
-  
-  if (typeof row !== 'undefined') 
-    logger.debug(`channel_activity.makeUserLastMessageActive: Database updated.` + JSON.stringify(row));
-  else 
-    logger.error(`channel_activity.makeUserLastMessageActive: Unable to update database.`);
-
-  return row;
 }
 
 async function getUserHistory(msg) {
