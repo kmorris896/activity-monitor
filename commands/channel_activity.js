@@ -101,14 +101,17 @@ async function getUserLastMessageDelta(msg) {
 
 async function makeUserLastMessageActive(msg) {
   const logger = msg.client.logger;
+  const sqlBinds = [msg.guild.id, msg.author.id, msg.id];
+  
+  logger.debug(`channel_activity.makeUserLastMessageActive: sqlBinds: ` + sqlBinds);
   const row = msg.client.db.prepare(`UPDATE chatTable 
     SET madeActive = 1
     WHERE serverId = ? 
       AND memberId = ?
-      AND messageId = ?;`).run(msg.guild.id, msg.author.id, msg.id);
+      AND messageId = ?;`).run(sqlBinds);
   
   if (typeof row !== 'undefined') 
-    logger.debug(`channel_activity.makeUserLastMessageActive: Database updated.`);
+    logger.debug(`channel_activity.makeUserLastMessageActive: Database updated.` + JSON.stringify(row));
   else 
     logger.error(`channel_activity.makeUserLastMessageActive: Unable to update database.`);
 
