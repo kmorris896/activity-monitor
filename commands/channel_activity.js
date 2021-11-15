@@ -91,11 +91,16 @@ async function getInactiveUsers(msg) {
 
       msg.client.logger.debug(`channel_activity.getInactiveUsers: ${member.user.username}: returning ${filter}`);
       if (filter === true)
-        inactiveMembers.push(member.id);
+        inactiveMembers.push(member);
     };
 
-    
     msg.client.logger.info(`channel_activity.getInactiveUsers: ${inactiveMembers.length} inactive members`);
+    let message = inactiveMembers.length + " inactive members:\n";
+    for (const member of inactiveMembers) {
+      message += member.user.username + " (" + member.user.id + ")\n";
+    }
+
+    msg.channel.send(message);
   }
 }
 
