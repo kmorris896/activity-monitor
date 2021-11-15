@@ -132,6 +132,7 @@ async function activityQuery(queryObject, data) {
 
   let columns = "";
   let where = "1 = 1";
+  let groupBy = "";
   
   let results = [];
   logger.debug('channel_activity.activityQuery: ' + JSON.stringify(queryObject, null, 2));
@@ -142,6 +143,9 @@ async function activityQuery(queryObject, data) {
   if (queryObject.hasOwnProperty("where") && (queryObject.where.length > 0))
     where = queryObject.where.join(' AND ');
   
+  if (queryObject.hasOwnProperty("groupBy") && (queryObject.groupBy.length > 0))
+    groupBy = queryObject.where.join(', ');
+
   // prepare escapes strings for us to make it safe to run.
   const row = data.dbClient.prepare(`
     SELECT ${columns}
@@ -149,7 +153,8 @@ async function activityQuery(queryObject, data) {
     WHERE 
           serverId = ? 
       AND memberId = ?
-      AND ${where};`).get(data.guildId, data.memberId);
+      AND ${where}
+    ${groupBy};`).get(data.guildId, data.memberId);
 
   if (typeof row === 'undefined') {
     logger.error("channel_activity.activityQuery: Database return undefined.");
