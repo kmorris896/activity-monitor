@@ -84,6 +84,8 @@ client.on('messageCreate', message => {
       client.commands.get('welcome_activity').checkNewArrivals(message.guild.id, client);
     else if (command == "reloadconfig")
       client.commands.get('config').initializeConfig(client);
+    else if (command == "getinactivelist")
+      client.commands.get('channel_activity').getInactiveUserList(message);
     else if (client.commands.has(command)) {
       try {
         client.commands.get(command).execute(message, args);

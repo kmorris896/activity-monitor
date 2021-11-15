@@ -57,12 +57,53 @@ module.exports = {
 
     });
   },
+  async getInactiveUserList(msg) {
+    await getInactiveUsers(msg);
+  }
+}
+
+async function getInactiveUsers(msg) {
+  msg.client.logger.info(`channel_activity.getInactiveUsers`);
+
+  if (msg.client.botConfig[msg.guild.id].hasOwnProperty('chatActivity') &&
+      msg.client.botConfig[msg.guild.id].chatActivity.hasOwnProperty('inactiveQuery')) {
+    const allMembers = await msg.guild.members.fetch();
+
+    let inactiveMembers = [];
+    for (const memberObject of allMembers) {
+      const member = memberObject[1];
+      msg.client.logger.info(`channel_activity.getInactiveUsers: checking ${member.user.username}`);
+      let filter = false;
+
+      msg.client.logger.debug('channel_activity.getInactiveUsers: Has active role test: ' + member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active));
+      msg.client.logger.debug('channel_activity.getInactiveUsers: Has ignorable role test: ' + member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole === memberRole.id)));
+
+      // if the member has an ignore role, don't include them
+      if ((member.roles.cache.some(role => role.id === msg.client.botConfig[msg.guild.id].chatActivity.roles.active) === true) && 
+          (member.roles.cache.some(memberRole => msg.client.botConfig[msg.guild.id].chatActivity.roles.ignoreAny.some(ignoreRole => ignoreRole === memberRole.id)) === false)) {
+        const inactiveAttributes = await activityQuery(msg.client.botConfig[msg.guild.id].chatActivity.inactiveQuery, {"dbClient": msg.client.db, "logger": msg.client.logger, "guildId": msg.guild.id, "memberId": member.id});
+        
+        if(inactiveAttributes.every(result => result === true)) {
+          msg.client.logger.info(`channel_activity.getInactiveUsers: ${member.user.username} is inactive`);
+          filter = true;
+        }
+      }
+
+      msg.client.logger.debug(`channel_activity.getInactiveUsers: ${member.user.username}: returning ${filter}`);
+      if (filter === true)
+        inactiveMembers.push(member.id);
+    };
+
+    
+    msg.client.logger.info(`channel_activity.getInactiveUsers: ${inactiveMembers.length} inactive members`);
+  }
 }
 
 async function getUserActivity(msg) {
   msg.client.logger.info(`channel_activity.getUserActivity: ` + msg.author.username);
   let userActive = false;
 
+  
   msg.client.logger.info(`channel_activity.getUserActivity: checking activity...`);
   userActive = await getUserHistory(msg);
 
@@ -89,7 +130,6 @@ async function getUserActivity(msg) {
 
   return userActive;
 }
-
 
 async function getUserLastMessageDelta(msg) {
   const logger = msg.client.logger;
