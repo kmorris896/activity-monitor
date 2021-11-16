@@ -97,7 +97,16 @@ async function getInactiveUsers(msg) {
     msg.client.logger.info(`channel_activity.getInactiveUsers: ${inactiveMembers.length} inactive members`);
     let message = inactiveMembers.length + " inactive members:\n";
     for (const member of inactiveMembers) {
-      message += member.user.username + " (" + member.user.id + ")\n";
+      let lastMessageDateTime = "never";
+      const row = msg.client.db.prepare(`SELECT messageDateTime FROM chatTable 
+        WHERE serverId = ? AND memberId = ? AND madeActive = 1 ORDER BY messageDateTime DESC LIMIT 1;`).get(msg.guild.id, member.user.id);
+      
+      if (typeof row !== 'undefined') {
+        const daysInMilliseconds = 1000 * 60 * 60 * 24;
+        lastMessageDateTime = Math.floor((Date.now() - row.messageDateTime) / daysInMilliseconds) + " days ago";
+      }
+
+      message += `${member.user.username} (${member.user.id}) -- Last Active Message ${lastMessageDateTime}` + "\n";
     }
 
     msg.channel.send(message);
