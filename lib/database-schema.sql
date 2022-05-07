@@ -14,5 +14,6 @@ CREATE TABLE IF NOT EXISTS chatTable (
   , messageDateTime   INTEGER
   , messageLink       TEXT
   , messageWordCount  INTEGER
-  , userLastMessageDelta      INTEGER);
+  , userLastMessageDelta      INTEGER
+  , madeActive        INTEGER DEFAULT 0);
   
