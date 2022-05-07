@@ -1,6 +1,6 @@
 {
   "name": "activity-monitor",
-  "version": "2.5.0-beta.6",
+  "version": "2.5.0-beta.33",
   "description": "Discord bot that monitors activity on servers.",
   "main": "index.js",
   "dependencies": {
